@@ -27,6 +27,29 @@
     },
     "db:deploy": {
       "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:reset": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:status": {
+      "cache": false
+    },
+    "db:pull": {
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
+    },
+    "db:format": {
+      "cache": false
+    },
+    "db:validate": {
+      "cache": false
     }
   }
 }

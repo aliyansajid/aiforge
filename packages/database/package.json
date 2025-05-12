@@ -4,7 +4,14 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --skip-generate",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "db:status": "prisma migrate status",
+    "db:pull": "prisma db pull",
+    "db:push": "prisma db push",
+    "db:format": "prisma format",
+    "db:validate": "prisma validate"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0"

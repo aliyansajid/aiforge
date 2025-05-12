@@ -1,0 +1,15 @@
+{
+  "name": "@repo/auth",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./validation": "./src/validation.ts"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.9.1",
+    "next-auth": "^5.0.0-beta.28"
+  },
+  "devDependencies": {
+    "bcryptjs": "^3.0.2"
+  }
+}
