@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "aiforge",
   "private": true,
   "scripts": {
     "build": "turbo run build",
