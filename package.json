@@ -1,5 +1,6 @@
 {
   "name": "aiforge",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -9,6 +10,8 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@repo/eslint-config": "repo:*",
+    "@repo/typescript-config": "repo:*",
     "prettier": "^3.6.2",
     "turbo": "^2.5.4",
     "typescript": "5.8.3"
