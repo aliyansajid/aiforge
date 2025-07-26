@@ -9,18 +9,32 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { useState } from "react";
+import { startTransition, useState, useEffect } from "react";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-
-const formSchema = z.object({
-  email: z.email(),
-  password: z.string(),
-});
+import { toast } from "sonner";
+import { loginSchema, registerSchema } from "@/schemas/auth";
+import { registerUser } from "@/actions/auth";
+import { signIn } from "@repo/auth";
 
 interface AuthFormProps {
   type: "login" | "sign-up";
+}
+
+// Helper function to capture session info
+async function captureSessionInfo() {
+  try {
+    await fetch("/api/session-info", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("Failed to capture session info:", error);
+    // Don't show error to user as login was successful
+  }
 }
 
 const AuthForm = ({ type }: AuthFormProps) => {
@@ -28,6 +42,16 @@ const AuthForm = ({ type }: AuthFormProps) => {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const showEmailForm = searchParams.get("email") === "true";
+
+  // Check if user just logged in via OAuth and capture session info
+  useEffect(() => {
+    const justLoggedIn =
+      searchParams.get("callbackUrl") || searchParams.get("from") === "oauth";
+    if (justLoggedIn) {
+      // Small delay to ensure session is fully established
+      setTimeout(captureSessionInfo, 1000);
+    }
+  }, [searchParams]);
 
   const handleEmailClick = () => {
     const params = new URLSearchParams(searchParams.toString());
@@ -41,6 +65,18 @@ const AuthForm = ({ type }: AuthFormProps) => {
     router.push(`?${params.toString()}`);
   };
 
+  const handleOAuthLogin = async (provider: "google" | "github") => {
+    try {
+      await signIn(provider, {
+        callbackUrl: "/?from=oauth",
+      });
+    } catch (error) {
+      toast.error("Failed to sign in with " + provider);
+    }
+  };
+
+  const formSchema = type === "login" ? loginSchema : registerSchema;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,8 +85,47 @@ const AuthForm = ({ type }: AuthFormProps) => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", values.email);
+        formData.append("password", values.password);
+
+        if (type === "sign-up") {
+          const result = await registerUser(formData);
+
+          if (!result.success) {
+            toast.error(result.error);
+            return;
+          }
+
+          toast.success(result.message);
+          router.push("/login");
+        } else {
+          const result = await signIn("credentials", {
+            email: values.email,
+            password: values.password,
+            redirect: false,
+          });
+
+          if (result?.error) {
+            toast.error("Invalid credentials");
+            return;
+          }
+
+          // Capture session info after successful credential login
+          await captureSessionInfo();
+
+          router.push("/");
+        }
+      } catch (error) {
+        toast.error("Something went wrong. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    });
   }
 
   return (
@@ -67,8 +142,8 @@ const AuthForm = ({ type }: AuthFormProps) => {
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
                 type="button"
-                text="Continue with Email"
                 icon={<Mail />}
+                text="Continue with Email"
                 className="rounded-full"
                 onClick={handleEmailClick}
               />
@@ -77,7 +152,6 @@ const AuthForm = ({ type }: AuthFormProps) => {
 
               <CustomButton
                 variant={ButtonVariant.OUTLINE}
-                text="Continue with Google"
                 icon={
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -98,12 +172,13 @@ const AuthForm = ({ type }: AuthFormProps) => {
                     />
                   </svg>
                 }
+                text="Continue with Google"
                 className="rounded-full"
+                onClick={() => handleOAuthLogin("google")}
               />
 
               <CustomButton
                 variant={ButtonVariant.OUTLINE}
-                text="Continue with GitHub"
                 icon={
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -112,7 +187,9 @@ const AuthForm = ({ type }: AuthFormProps) => {
                     />
                   </svg>
                 }
+                text="Continue with GitHub"
                 className="rounded-full"
+                onClick={() => handleOAuthLogin("github")}
               />
 
               <p className="text-center text-sm text-muted-foreground">
@@ -176,6 +253,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
                 text={type == "login" ? "Login" : "Sign up"}
+                isLoading={isLoading}
               />
 
               <CustomButton
