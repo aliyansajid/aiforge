@@ -1,15 +1,7 @@
-import { auth } from "@repo/auth";
+import React from "react";
 
-const Home = async () => {
-  const session = await auth();
-  return (
-    <div>
-      <div>{session?.user?.id}</div>
-      <div>{session?.user?.name}</div>
-      <div>{session?.user?.email}</div>
-      <div>{session?.user?.image}</div>
-    </div>
-  );
+const page = () => {
+  return <div>page</div>;
 };
 
-export default Home;
+export default page;

@@ -9,6 +9,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@repo/ui/components/input-otp";
 
 interface CustomProps {
   control: Control<any>;
@@ -21,6 +27,7 @@ interface CustomProps {
 
 enum FormFieldType {
   INPUT = "input",
+  OTP = "otp",
   TEXTAREA = "textarea",
   SELECT = "select",
   RADIO = "radio",
@@ -40,8 +47,25 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
         </FormControl>
       );
 
+    case FormFieldType.OTP:
+      return (
+        <FormControl>
+          <InputOTP maxLength={6} {...field}>
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSeparator />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        </FormControl>
+      );
+
     default:
-      break;
+      return null;
   }
 };
 
@@ -53,7 +77,7 @@ const CustomFormField = (props: CustomProps) => {
       name={name}
       render={({ field }) => (
         <FormItem>
-          {fieldType != FormFieldType.CHECKBOX && label && (
+          {fieldType !== FormFieldType.CHECKBOX && label && (
             <FormLabel>{label}</FormLabel>
           )}
           <RenderField props={props} field={field} />

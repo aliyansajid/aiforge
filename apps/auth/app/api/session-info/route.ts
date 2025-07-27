@@ -15,7 +15,7 @@ function getClientIP(request: NextRequest): string | null {
     return realIp;
   }
 
-  console.log(forwarded, realIp);
+  console.log("Forwarded IP:", forwarded, "Read IP:", realIp);
 
   // No reliable way to get IP if headers are missing
   return null;
@@ -39,7 +39,7 @@ async function getLocationFromIP(ipAddress: string) {
         timezone: data.timezone,
       };
     }
-    console.log(data);
+    console.log("Location data from IP:", data);
   } catch (error) {
     console.error("Failed to get location from IP:", error);
   }
