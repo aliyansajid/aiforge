@@ -1,10 +1,10 @@
-export const verificationEmailTemplate = (otp: string) => `
+export const passwordResetEmailTemplate = (otp: string) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validate your email - AIForge</title>
+    <title>Reset your password - AIForge</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
     <div style="background-color: #ffffff;">
@@ -35,9 +35,9 @@ export const verificationEmailTemplate = (otp: string) => `
                                             <tr>
                                                 <td align="left" style="font-size: 0px; padding: 10px 25px; padding-top: 24px; padding-bottom: 24px; word-break: break-word;">
                                                     <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 15px; font-weight: 300; line-height: 24px; text-align: left; color: #333333;">
-                                                        <h1 style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 24px; font-weight: 600; line-height: 24px; text-align: left; color: #333333; padding-bottom: 18px;">Validate your email</h1>
+                                                        <h1 style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 24px; font-weight: 600; line-height: 24px; text-align: left; color: #333333; padding-bottom: 18px;">Reset your password</h1>
                                                         <p>Hi,</p>
-                                                        <p>Thank you for creating an AIForge account. Please use the code below to validate your email address.</p>
+                                                        <p>Please use the code below to reset your password.</p>
                                                         <table width="100%">
                                                             <tbody>
                                                                 <tr>
@@ -51,7 +51,7 @@ export const verificationEmailTemplate = (otp: string) => `
                                                                 </tr>
                                                             </tbody>
                                                         </table>
-                                                        <p>If you did not create a new account, please ignore this email.</p>
+                                                        <p>If you did not reset your password, please ignore this email.</p>
                                                     </div>
                                                 </td>
                                             </tr>

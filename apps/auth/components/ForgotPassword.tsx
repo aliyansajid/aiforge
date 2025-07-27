@@ -11,30 +11,39 @@ import {
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const formSchema = z.object({
-  email: z.email(),
-  password: z.string(),
-});
+import { emailSchema } from "@/schemas/auth";
+import { sendPasswordResetOtp } from "@/actions/auth";
+import { toast } from "sonner";
 
 const ForgotPasswordForm = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  // Initialize the form with schema validation using Zod
+  const form = useForm<z.infer<typeof emailSchema>>({
+    resolver: zodResolver(emailSchema),
     defaultValues: {
       email: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  /**
+   * Handle form submission for sending password reset OTP
+   * On success: redirects user to the OTP verification screen
+   */
+  async function onSubmit(values: z.infer<typeof emailSchema>) {
     setIsLoading(true);
-    try {
-      console.log(values);
-    } catch (error) {
-    } finally {
-      setIsLoading(false);
+
+    const formData = new FormData();
+    formData.append("email", values.email);
+
+    const response = await sendPasswordResetOtp(formData);
+    setIsLoading(false);
+
+    if (response.success) {
+      router.replace(`/reset-password?email=${values.email}`);
+    } else {
+      toast.error(response.error || "Failed to send OTP");
     }
   }
 
@@ -58,7 +67,7 @@ const ForgotPasswordForm = () => {
           placeholder="m@example.com"
         />
 
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <CustomButton
             variant={ButtonVariant.DEFAULT}
             text="Send Reset Link"

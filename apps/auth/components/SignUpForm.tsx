@@ -19,9 +19,20 @@ import { sendOtp, verifyOtp, registerUser } from "@/actions/auth";
 import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
 import { toast } from "sonner";
 
+/**
+ * Multi-step sign-up form with email verification using OTP.
+ *
+ * Flow:
+ * 1. Choose sign-up method
+ * 2. Submit email and receive OTP
+ * 3. Verify OTP
+ * 4. Submit personal info to complete registration
+ */
 const SignUpForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // UI state and step tracking
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<
     "initial" | "email" | "otp" | "personal"
@@ -30,19 +41,15 @@ const SignUpForm = () => {
 
   const showEmailForm = searchParams.get("email") === "true";
 
-  // Initialize separate forms for each step with validation
+  // Form definitions with Zod validation
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
-    defaultValues: {
-      email: "",
-    },
+    defaultValues: { email: "" },
   });
 
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: "",
-    },
+    defaultValues: { otp: "" },
   });
 
   const personalForm = useForm<z.infer<typeof personalInfoSchema>>({
@@ -54,13 +61,14 @@ const SignUpForm = () => {
     },
   });
 
-  // Handle URL parameter-based step navigation
+  // If URL indicates email form should be shown, trigger transition
   useEffect(() => {
     if (showEmailForm && currentStep === "initial") {
       setCurrentStep("email");
     }
   }, [showEmailForm, currentStep]);
 
+  // Trigger email form via URL update
   const handleEmailClick = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("email", "true");
@@ -69,8 +77,8 @@ const SignUpForm = () => {
   };
 
   /**
-   * Navigate back through steps and clean up form state
-   * Resets forms and URL parameters appropriately
+   * Navigate back one step and reset the appropriate form.
+   * Also removes query parameters if going back from email step.
    */
   const handleBackClick = () => {
     if (currentStep === "email") {
@@ -89,8 +97,8 @@ const SignUpForm = () => {
   };
 
   /**
-   * Handle email submission and OTP generation
-   * Stores email for subsequent steps and advances to OTP verification
+   * Submits email and requests an OTP to be sent.
+   * On success, advances to OTP input step.
    */
   async function onEmailSubmit(values: z.infer<typeof emailSchema>) {
     setIsLoading(true);
@@ -105,16 +113,15 @@ const SignUpForm = () => {
       setUserEmail(values.email);
       otpForm.reset({ otp: "" });
       setCurrentStep("otp");
-      // Clean URL after successful submission
-      router.replace("/sign-up", { scroll: false });
+      router.replace("/sign-up", { scroll: false }); // Clean up query params
     } else {
       toast.error(response.error || "Failed to send OTP");
     }
   }
 
   /**
-   * Verify the OTP code entered by user
-   * Advances to personal info step on successful verification
+   * Verifies the OTP input by the user.
+   * On success, moves to personal information form.
    */
   async function onOtpSubmit(values: z.infer<typeof otpSchema>) {
     setIsLoading(true);
@@ -139,8 +146,8 @@ const SignUpForm = () => {
   }
 
   /**
-   * Complete user registration with personal information
-   * Creates account and redirects to login on success
+   * Final step: submits personal information to create a new user.
+   * Redirects to login page on success.
    */
   async function onPersonalSubmit(values: z.infer<typeof personalInfoSchema>) {
     setIsLoading(true);
@@ -155,8 +162,7 @@ const SignUpForm = () => {
     setIsLoading(false);
 
     if (response.success) {
-      toast.success("Account created successfully! Redirecting to login...");
-      // Brief delay to show success message before redirect
+      toast.success("Account created successfully!");
       setTimeout(() => {
         router.push("/login");
       }, 1000);
@@ -165,7 +171,7 @@ const SignUpForm = () => {
     }
   }
 
-  // Step 1: Authentication method selection
+  // Step 1: Choose sign-up method
   if (currentStep === "initial") {
     return (
       <div>
@@ -198,7 +204,7 @@ const SignUpForm = () => {
     );
   }
 
-  // Step 2: Email input and validation
+  // Step 2: Email submission
   if (currentStep === "email") {
     return (
       <Form {...emailForm}>
@@ -241,7 +247,7 @@ const SignUpForm = () => {
     );
   }
 
-  // Step 3: OTP verification
+  // Step 3: OTP Verification
   if (currentStep === "otp") {
     return (
       <Form {...otpForm} key={`otp-form-${userEmail}`}>
@@ -283,7 +289,7 @@ const SignUpForm = () => {
     );
   }
 
-  // Step 4: Personal information and account creation
+  // Step 4: Personal Info Submission
   if (currentStep === "personal") {
     return (
       <Form {...personalForm} key={`personal-form-${userEmail}`}>
@@ -328,7 +334,7 @@ const SignUpForm = () => {
               placeholder="********"
             />
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
                 text="Sign Up"

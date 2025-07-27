@@ -2,12 +2,14 @@
 
 import bcrypt from "bcryptjs";
 import { prisma } from "@repo/db";
-import { sendVerificationEmail } from "@/lib/email/nodemailer";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "@/lib/email/nodemailer";
 import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
 
 /**
- * Generates a 6-character alphanumeric OTP
- * @returns {string} Random OTP (e.g., "A1B2C3")
+ * Generates a 6-character alphanumeric OTP using uppercase letters and digits.
  */
 function generateOtp() {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -23,8 +25,11 @@ function generateOtp() {
 }
 
 /**
- * Sends an OTP to the user's email for account verification
- * Checks for existing users and creates a verification token
+ * Handles OTP generation and sending for new user email verification.
+ * - Validates input
+ * - Prevents duplicate user registration
+ * - Generates and stores a temporary OTP
+ * - Sends OTP via email
  */
 export async function sendOtp(formData: FormData) {
   const rawData = {
@@ -53,9 +58,9 @@ export async function sendOtp(formData: FormData) {
   try {
     await prisma.$connect();
 
-    // Prevent duplicate registrations
+    // Ensure this email isn't already registered
     const existingUser = await prisma.user.findUnique({
-      where: { email: email },
+      where: { email },
     });
 
     if (existingUser) {
@@ -65,25 +70,25 @@ export async function sendOtp(formData: FormData) {
       };
     }
 
-    // Generate OTP and format for display
-    const otp = generateOtp(); // e.g., "A1B2C3"
-    const otpWithDash = `${otp.slice(0, 3)}-${otp.slice(3)}`; // e.g., "A1B-2C3"
-    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    // Generate a new OTP and define expiration
+    const otp = generateOtp();
+    const otpWithDash = `${otp.slice(0, 3)}-${otp.slice(3)}`; // For readability
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins validity
 
-    // Store plain OTP in database for comparison
+    // Save the OTP in the DB (without dash)
     await prisma.verificationToken.create({
       data: {
         email,
-        token: otp, // Store without dash
+        token: otp,
         expires,
       },
     });
 
-    // Send formatted OTP via email
+    // Send the OTP via email
     const emailResult = await sendVerificationEmail(email, otpWithDash);
 
     if (!emailResult.success) {
-      // Clean up verification token if email fails
+      // Cleanup if email delivery fails
       await prisma.verificationToken.deleteMany({
         where: { email, token: otp },
       });
@@ -110,8 +115,9 @@ export async function sendOtp(formData: FormData) {
 }
 
 /**
- * Verifies the OTP entered by the user
- * Marks the token as used to prevent replay attacks
+ * Verifies the OTP provided by the user.
+ * - Validates input and token existence
+ * - Deletes token after successful verification (one-time use)
  */
 export async function verifyOtp(formData: FormData) {
   const rawData = {
@@ -127,7 +133,7 @@ export async function verifyOtp(formData: FormData) {
     };
   }
 
-  // Normalize OTP input
+  // Remove dash for DB comparison
   const normalizedOtp = rawData.otp.replace("-", "");
 
   const validationResult = otpSchema.safeParse({ otp: normalizedOtp });
@@ -145,13 +151,12 @@ export async function verifyOtp(formData: FormData) {
   try {
     await prisma.$connect();
 
-    // Find valid, unused OTP token
+    // Check for a valid token
     const token = await prisma.verificationToken.findFirst({
       where: {
         email: rawData.email,
         token: normalizedOtp,
         expires: { gte: new Date() },
-        used: false,
       },
     });
 
@@ -162,10 +167,9 @@ export async function verifyOtp(formData: FormData) {
       };
     }
 
-    // Mark token as used to prevent reuse
-    await prisma.verificationToken.update({
+    // Invalidate the OTP (one-time use)
+    await prisma.verificationToken.delete({
       where: { id: token.id },
-      data: { used: true },
     });
 
     return {
@@ -184,8 +188,10 @@ export async function verifyOtp(formData: FormData) {
 }
 
 /**
- * Creates a new user account after email verification
- * Validates all input fields and creates user with hashed password
+ * Registers a new user after successful OTP verification.
+ * - Validates all form fields
+ * - Hashes password before storing
+ * - Creates user record with default status and role
  */
 export async function registerUser(formData: FormData) {
   const rawData = {
@@ -195,7 +201,7 @@ export async function registerUser(formData: FormData) {
     password: formData.get("password") as string,
   };
 
-  // Ensure all required fields are present
+  // Check for missing values before parsing
   if (
     !rawData.email ||
     !rawData.firstName ||
@@ -222,7 +228,7 @@ export async function registerUser(formData: FormData) {
     };
   }
 
-  // Validate personal information and password strength
+  // Validate names and password
   const personalValidation = personalInfoSchema.safeParse({
     firstName: rawData.firstName,
     lastName: rawData.lastName,
@@ -245,9 +251,9 @@ export async function registerUser(formData: FormData) {
   try {
     await prisma.$connect();
 
-    // Final check for existing user
+    // Final safeguard against duplicate registration
     const existingUser = await prisma.user.findUnique({
-      where: { email: email },
+      where: { email },
     });
 
     if (existingUser) {
@@ -257,10 +263,9 @@ export async function registerUser(formData: FormData) {
       };
     }
 
-    // Hash password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with verified email status
+    // Create user with default role and active status
     await prisma.user.create({
       data: {
         email,
@@ -281,6 +286,160 @@ export async function registerUser(formData: FormData) {
     console.error("Registration error:", error);
     return {
       error: "Something went wrong. Please try again later.",
+      success: false,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
+ * Sends a password reset OTP to the user’s email if the account exists.
+ * - Always returns a generic success message to prevent email enumeration
+ */
+export async function sendPasswordResetOtp(formData: FormData) {
+  const rawData = {
+    email: formData.get("email") as string,
+  };
+
+  if (!rawData.email) {
+    console.error("Send OTP error: Email is missing or null");
+    return {
+      error: "Email is required",
+      success: false,
+    };
+  }
+
+  const validationResult = emailSchema.safeParse(rawData);
+  if (!validationResult.success) {
+    console.error("Send OTP validation error:", validationResult.error.issues);
+    return {
+      error: validationResult.error.issues[0]?.message || "Invalid email",
+      success: false,
+    };
+  }
+
+  const { email } = validationResult.data;
+
+  try {
+    await prisma.$connect();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      // Generate OTP and save to DB
+      const otp = generateOtp();
+      const otpWithDash = `${otp.slice(0, 3)}-${otp.slice(3)}`;
+      const expires = new Date(Date.now() + 15 * 60 * 1000);
+
+      await prisma.verificationToken.create({
+        data: {
+          email,
+          token: otp,
+          expires,
+        },
+      });
+
+      const emailResult = await sendPasswordResetEmail(email, otpWithDash);
+
+      if (!emailResult.success) {
+        await prisma.verificationToken.deleteMany({
+          where: { email, token: otp },
+        });
+
+        return {
+          error: "Failed to send OTP email. Please try again later.",
+          success: false,
+        };
+      }
+    }
+
+    // Prevents leaking whether an account exists or not
+    return {
+      message:
+        "If an account exists with this email, you will receive reset instructions",
+      success: true,
+    };
+  } catch (error) {
+    console.error("Send OTP error:", error);
+    return {
+      error: "Failed to send OTP. Please try again later.",
+      success: false,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
+ * Resets the user’s password after OTP verification.
+ * - Validates email and password
+ * - Updates the password if user exists
+ */
+export async function resetPassword(formData: FormData) {
+  const rawData = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
+
+  if (!rawData.email || !rawData.password) {
+    console.error("Reset password error: Email or password is missing");
+    return { error: "Email and password are required", success: false };
+  }
+
+  const emailValidation = emailSchema.safeParse({ email: rawData.email });
+  if (!emailValidation.success) {
+    console.error(
+      "Reset password email validation error:",
+      emailValidation.error.issues
+    );
+    return {
+      error: emailValidation.error.issues[0]?.message || "Invalid email",
+      success: false,
+    };
+  }
+
+  const passwordValidation = personalInfoSchema
+    .pick({ password: true })
+    .safeParse({
+      password: rawData.password,
+    });
+  if (!passwordValidation.success) {
+    console.error(
+      "Reset password validation error:",
+      passwordValidation.error.issues
+    );
+    return {
+      error: passwordValidation.error.issues[0]?.message || "Invalid password",
+      success: false,
+    };
+  }
+
+  const { email } = emailValidation.data;
+  const { password } = passwordValidation.data;
+
+  try {
+    await prisma.$connect();
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { error: "No account found with this email", success: false };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+
+    return { message: "Password updated successfully", success: true };
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return {
+      error: "Failed to update password. Please try again later.",
       success: false,
     };
   } finally {

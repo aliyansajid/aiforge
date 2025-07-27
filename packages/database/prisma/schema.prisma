@@ -20,10 +20,8 @@ model User {
   role   UserRole      @default(CONSUMER)
   status AccountStatus @default(ACTIVE)
 
-  accounts            Account[]
-  sessions            Session[]
-  verificationTokens  VerificationToken[]
-  passwordResetTokens PasswordResetToken[]
+  accounts Account[]
+  sessions Session[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,15 +71,10 @@ model Session {
 }
 
 model VerificationToken {
-  id     String  @id @default(cuid())
-  userId String?
-  email  String?
-  token  String  @unique
-
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
   expires DateTime
-  used    Boolean  @default(false)
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -103,19 +96,4 @@ enum AccountStatus {
   BLOCKED // Permanently blocked
   PENDING // Account pending verification/approval
   INACTIVE // User deactivated their own account
-}
-
-model PasswordResetToken {
-  id      String   @id @default(cuid())
-  userId  String
-  token   String   @unique
-  expires DateTime
-  used    Boolean  @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([token])
 }

@@ -1,24 +1,28 @@
 import nodemailer from "nodemailer";
 import { verificationEmailTemplate } from "./templates/verification-email";
+import { passwordResetEmailTemplate } from "./templates/password-reset-email";
 
-// Configure the transporter
+// Configure the SMTP transporter
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
-  secure: true, // Use SSL
+  secure: true, // Use SSL/TLS for secure connection
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-// Email configuration constants
+// Standardized email configuration used across all outgoing emails
 export const EMAIL_CONFIG = {
   from: `"AIForge" <${process.env.SMTP_USER}>`,
   replyTo: process.env.SMTP_USER,
 } as const;
 
-// Helper function to send emails with consistent configuration
+/**
+ * Utility to send an email using predefined configurations.
+ * Accepts content and recipient details.
+ */
 export async function sendEmail({
   to,
   subject,
@@ -47,7 +51,10 @@ export async function sendEmail({
   }
 }
 
-// Email verification template
+/**
+ * Sends a verification email with a formatted OTP.
+ * Used during account registration.
+ */
 export async function sendVerificationEmail(
   email: string,
   otpWithDash: string
@@ -59,21 +66,17 @@ export async function sendVerificationEmail(
   });
 }
 
+/**
+ * Sends a password reset email with a formatted OTP.
+ * Used on forgot password.
+ */
 export async function sendPasswordResetEmail(
   email: string,
-  resetToken: string
+  otpWithDash: string
 ) {
   return sendEmail({
     to: email,
-    subject: "Reset your AIForge password",
-    html: `Password reset token: ${resetToken}`,
-  });
-}
-
-export async function sendWelcomeEmail(email: string, firstName: string) {
-  return sendEmail({
-    to: email,
-    subject: "Welcome to AIForge!",
-    html: `Welcome ${firstName}!`,
+    subject: `${otpWithDash} AIForge confirmation code`,
+    html: passwordResetEmailTemplate(otpWithDash),
   });
 }
