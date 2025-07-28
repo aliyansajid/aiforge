@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { resetPassword, verifyOtp } from "@/actions/auth";
 import { otpSchema, personalInfoSchema } from "@/schemas/auth";
+import { signIn } from "@repo/auth";
 
 const ResetPasswordForm = () => {
   const router = useRouter();
@@ -86,8 +87,38 @@ const ResetPasswordForm = () => {
 
       const response = await resetPassword(formData);
       if (response.success) {
-        toast.success("Password updated successfully! Redirecting to login...");
-        setTimeout(() => router.push("/login"), 1000);
+        toast.success("Password updated successfully");
+        try {
+          // Automatically sign in the user with their new credentials
+          const signInResult = await signIn("credentials", {
+            email: email,
+            password: values.password,
+            redirect: false,
+          });
+
+          if (signInResult?.error) {
+            toast.error("Failed to log in. Please try logging in manually.");
+            router.push("/login");
+          } else {
+            // Capture session info
+            try {
+              await fetch("/api/session-info", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              });
+            } catch (error) {
+              // Silently fail; user login is successful regardless of tracking
+              console.warn("Failed to capture session info:", error);
+            }
+
+            router.push("/");
+          }
+        } catch (error) {
+          toast.error("Failed to log in. Please try logging in manually.");
+          router.push("/login");
+        }
       } else {
         toast.error(
           response.error || "Failed to update password. Please try again."

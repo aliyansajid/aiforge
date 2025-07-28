@@ -18,6 +18,7 @@ import GitHubAuthButton from "./GitHubAuthButton";
 import { sendOtp, verifyOtp, registerUser } from "@/actions/auth";
 import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
 import { toast } from "sonner";
+import { signIn } from "@repo/auth";
 
 /**
  * Multi-step sign-up form with email verification using OTP.
@@ -162,10 +163,37 @@ const SignUpForm = () => {
     setIsLoading(false);
 
     if (response.success) {
-      toast.success("Account created successfully!");
-      setTimeout(() => {
+      try {
+        // Automatically sign in the user with their new credentials
+        const signInResult = await signIn("credentials", {
+          email: userEmail,
+          password: values.password,
+          redirect: false,
+        });
+
+        if (signInResult?.error) {
+          toast.error("Failed to log in. Please try logging in manually.");
+          router.push("/login");
+        } else {
+          // Capture session info
+          try {
+            await fetch("/api/session-info", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+          } catch (error) {
+            // Silently fail; user login is successful regardless of tracking
+            console.warn("Failed to capture session info:", error);
+          }
+
+          router.push("/");
+        }
+      } catch (error) {
+        toast.error("Failed to log in. Please try logging in manually.");
         router.push("/login");
-      }, 1000);
+      }
     } else {
       toast.error(response.error || "Failed to create account");
     }

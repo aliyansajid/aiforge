@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { verificationEmailTemplate } from "./templates/verification-email";
 import { passwordResetEmailTemplate } from "./templates/password-reset-email";
+import { newLoginEmailTemplate } from "./templates/new-login-email";
 
 // Configure the SMTP transporter
 export const transporter = nodemailer.createTransport({
@@ -78,5 +79,26 @@ export async function sendPasswordResetEmail(
     to: email,
     subject: `${otpWithDash} AIForge confirmation code`,
     html: passwordResetEmailTemplate(otpWithDash),
+  });
+}
+
+/**
+ * Sends a new login alert email with session details.
+ * Used when a user logs in from a new IP address or device.
+ */
+export async function sendNewLoginEmail(
+  email: string,
+  loginData: {
+    firstName: string;
+    loginTime: string;
+    ipAddress: string;
+    location: string;
+    browser: string;
+  }
+) {
+  return sendEmail({
+    to: email,
+    subject: "New login to your AIForge account",
+    html: newLoginEmailTemplate(loginData),
   });
 }

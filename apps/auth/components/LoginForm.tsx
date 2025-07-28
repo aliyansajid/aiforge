@@ -19,7 +19,10 @@ import { signIn } from "@repo/auth";
 import Google from "./GoogleAuthButton";
 import GitHub from "./GitHubAuthButton";
 
-// Helper function to capture session info
+/**
+ * Helper to record session metadata.
+ * Called only after a successful login.
+ */
 async function captureSessionInfo() {
   try {
     await fetch("/api/session-info", {
@@ -29,8 +32,8 @@ async function captureSessionInfo() {
       },
     });
   } catch (error) {
-    console.error("Failed to capture session info:", error);
-    // Don't show error to user as login was successful
+    // Silently fail; user login is successful regardless of tracking
+    toast.error("Failed to capture session info");
   }
 }
 
@@ -38,14 +41,18 @@ const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Controls which form variant is shown (OAuth vs email/password)
   const showEmailForm = searchParams.get("email") === "true";
 
+  // Redirects to email/password login form
   const handleEmailClick = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("email", "true");
     router.push(`?${params.toString()}`);
   };
 
+  // Redirects back to main login options (OAuth providers)
   const handleBackClick = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("email");
@@ -54,6 +61,7 @@ const LoginForm = () => {
 
   const formSchema = loginSchema;
 
+  // React Hook Form setup
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,8 +70,13 @@ const LoginForm = () => {
     },
   });
 
+  /**
+   * Handles email/password sign-in flow.
+   * Authenticates using credentials provider, then tracks session.
+   */
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+
     startTransition(async () => {
       try {
         const result = await signIn("credentials", {
@@ -78,7 +91,6 @@ const LoginForm = () => {
         }
 
         await captureSessionInfo();
-
         router.push("/");
       } catch (error) {
         toast.error("Something went wrong. Please try again.");
@@ -92,10 +104,12 @@ const LoginForm = () => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         {!showEmailForm ? (
+          // OAuth + email login options view
           <>
             <h1 className="text-2xl font-bold text-center mb-10">
               Login to your account
             </h1>
+
             <div className="grid gap-4">
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
@@ -120,6 +134,7 @@ const LoginForm = () => {
             </div>
           </>
         ) : (
+          // Email/password login form view
           <div className="grid gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
               <h1 className="text-2xl font-bold">Login to your account</h1>
@@ -137,7 +152,7 @@ const LoginForm = () => {
               placeholder="m@example.com"
             />
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               <CustomFormField
                 control={form.control}
                 fieldType={FormFieldType.INPUT}
@@ -154,7 +169,7 @@ const LoginForm = () => {
               </Link>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
                 text="Login"

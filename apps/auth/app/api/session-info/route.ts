@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { auth } from "@repo/auth";
+import { sendNewLoginEmail } from "../../../lib/email/nodemailer";
 
-// Function to get client IP address from request
+/**
+ * Extracts client IP address from request headers.
+ * Supports common proxy headers `x-forwarded-for` and `x-real-ip`.
+ */
 function getClientIP(request: NextRequest): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
   const realIp = request.headers.get("x-real-ip");
@@ -17,11 +21,14 @@ function getClientIP(request: NextRequest): string | null {
 
   console.log("Forwarded IP:", forwarded, "Read IP:", realIp);
 
-  // No reliable way to get IP if headers are missing
+  // Fallback: no reliable IP found
   return null;
 }
 
-// Function to get location data from IP
+/**
+ * Retrieves geolocation data based on provided IP address.
+ * Uses ip-api.com for location enrichment.
+ */
 async function getLocationFromIP(ipAddress: string) {
   try {
     const response = await fetch(
@@ -39,11 +46,13 @@ async function getLocationFromIP(ipAddress: string) {
         timezone: data.timezone,
       };
     }
+
     console.log("Location data from IP:", data);
   } catch (error) {
     console.error("Failed to get location from IP:", error);
   }
 
+  // Default fallback when location lookup fails
   return {
     country: null,
     region: null,
@@ -54,19 +63,55 @@ async function getLocationFromIP(ipAddress: string) {
   };
 }
 
+/**
+ * Formats location data into a readable string.
+ */
+function formatLocation(locationData: any): string {
+  const parts = [];
+
+  if (locationData.city) parts.push(locationData.city);
+  if (locationData.region) parts.push(locationData.region);
+  if (locationData.country) parts.push(locationData.country);
+
+  return parts.length > 0 ? parts.join(", ") : "Unknown Location";
+}
+
+/**
+ * Checks if this is a new IP address for the user.
+ */
+async function isNewIPAddress(
+  userId: string,
+  ipAddress: string
+): Promise<boolean> {
+  if (!ipAddress) return false;
+
+  const existingSession = await prisma.session.findFirst({
+    where: {
+      userId,
+      ipAddress,
+    },
+  });
+
+  return !existingSession;
+}
+
+/**
+ * Updates the user's most recent session with IP, user agent, and location data.
+ * Sends email alert if login is from a new IP address.
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Get the current session
+    // Retrieve the authenticated user session
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userAgent = request.headers.get("user-agent");
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
     const ipAddress = getClientIP(request);
 
-    // Get location data from IP
+    // Attempt to enrich session with geolocation data
     let locationData = {
       country: null,
       region: null,
@@ -80,12 +125,18 @@ export async function POST(request: NextRequest) {
       locationData = await getLocationFromIP(ipAddress);
     }
 
-    // Find the user's most recent session and update it
+    // Check if this is a new IP address
+    const isNewIP = ipAddress
+      ? await isNewIPAddress(session.user.id, ipAddress)
+      : false;
+
+    // Get the latest session entry for the user
     const latestSession = await prisma.session.findFirst({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
     });
 
+    // Update session record with IP and location data
     if (latestSession) {
       await prisma.session.update({
         where: { id: latestSession.id },
@@ -100,6 +151,24 @@ export async function POST(request: NextRequest) {
           timezone: locationData.timezone,
         },
       });
+    }
+
+    // Send email alert for new IP address login
+    if (isNewIP && session.user.email) {
+      try {
+        await sendNewLoginEmail(session.user.email, {
+          firstName: session.user.name?.split(" ")[0] || "User",
+          loginTime: new Date().toUTCString(),
+          ipAddress: ipAddress || "Unknown IP",
+          location: formatLocation(locationData),
+          browser: userAgent,
+        });
+
+        console.log("New login email sent successfully");
+      } catch (emailError) {
+        console.error("Failed to send new login email:", emailError);
+        // Don't fail the entire request if email sending fails
+      }
     }
 
     return NextResponse.json({ success: true });

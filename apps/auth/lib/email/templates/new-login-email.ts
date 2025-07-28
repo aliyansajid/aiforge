@@ -1,10 +1,18 @@
-export const verificationEmailTemplate = (otp: string) => `
+interface NewLoginEmailData {
+  firstName: string;
+  loginTime: string;
+  ipAddress: string;
+  location: string;
+  browser: string;
+}
+
+export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Validate your email - AIForge</title>
+    <title>New Login Alert - AIForge</title>
   </head>
   <body style="margin: 0; padding: 0; background-color: #ffffff">
     <div style="background-color: #ffffff">
@@ -19,7 +27,9 @@ export const verificationEmailTemplate = (otp: string) => `
           opacity: 0;
           overflow: hidden;
         "
-      ></div>
+      >
+        Your AIForge account has been accessed from a new IP address
+      </div>
       <div style="background-color: #ffffff">
         <div
           style="
@@ -92,7 +102,7 @@ export const verificationEmailTemplate = (otp: string) => `
                                     <img
                                       alt="AIForge logo"
                                       height="auto"
-                                      src="https://your-domain.com/logo.png"
+                                      src="https://aiforge.host/logo.png"
                                       style="
                                         border: 0;
                                         display: block;
@@ -131,52 +141,39 @@ export const verificationEmailTemplate = (otp: string) => `
                                 color: #333333;
                               "
                             >
-                              <h1
-                                style="
-                                  font-family: -apple-system, system-ui,
-                                    BlinkMacSystemFont;
-                                  font-size: 24px;
-                                  font-weight: 600;
-                                  line-height: 24px;
-                                  text-align: left;
-                                  color: #333333;
-                                  padding-bottom: 18px;
-                                "
-                              >
-                                Validate your email
-                              </h1>
-                              <p>Hi,</p>
+                              <h1>We've noticed a new login</h1>
+                              <p>Hi ${data.firstName},</p>
                               <p>
-                                Thank you for creating an AIForge account.
-                                Please use the code below to validate your email
-                                address.
+                                This is a routine security alert. Someone logged
+                                into your AIForge account from a new IP address:
                               </p>
-                              <table width="100%">
-                                <tbody>
-                                  <tr>
-                                    <td style="height: 15px"></td>
-                                  </tr>
-                                  <tr>
-                                    <td
-                                      style="
-                                        text-align: center;
-                                        background: #fafafa;
-                                        padding: 30px 20px;
-                                        font-size: 26px;
-                                        font-weight: bold;
-                                      "
-                                    >
-                                      ${otp}
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td style="height: 15px"></td>
-                                  </tr>
-                                </tbody>
-                              </table>
                               <p>
-                                If you did not create a new account, please
-                                ignore this email.
+                                <strong>Time:</strong> ${data.loginTime}<br />
+                                <strong>IP address:</strong> ${data.ipAddress}<br />
+                                <strong>Location:</strong> ${data.location}<br />
+                                <strong>Browser:</strong> ${data.browser}
+                              </p>
+                              <p>
+                                If this was you, you can ignore this alert. If
+                                you noticed any suspicious activity on your
+                                account, please
+                                <a
+                                  href="https://aiforge.host/change-password"
+                                  target="_blank"
+                                  >change your password</a
+                                >
+                                and
+                                <a
+                                  href="https://aiforge.host/settings"
+                                  target="_blank"
+                                  >enable two-factor authentication</a
+                                >
+                                on your
+                                <a
+                                  href="https://aiforge.host/"
+                                  target="_blank"
+                                  >account page</a
+                                >.
                               </p>
                             </div>
                           </td>
