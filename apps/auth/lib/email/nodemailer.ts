@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
-import { verificationEmailTemplate } from "./templates/verification-email";
-import { passwordResetEmailTemplate } from "./templates/password-reset-email";
-import { newLoginEmailTemplate } from "./templates/new-login-email";
+import { verificationEmailTemplate } from "./templates/verification_email";
+import { passwordResetEmailTemplate } from "./templates/password_reset_email";
+import { newLoginEmailTemplate } from "./templates/new_login_email";
+import { emailChangeVerificationTemplate } from "./templates/email_change_verification";
+import { emailChangeNotificationTemplate } from "./templates/email_change_notification";
 
 // Configure the SMTP transporter
 export const transporter = nodemailer.createTransport({
@@ -79,6 +81,38 @@ export async function sendPasswordResetEmail(
     to: email,
     subject: `${otpWithDash} AIForge confirmation code`,
     html: passwordResetEmailTemplate(otpWithDash),
+  });
+}
+
+/**
+ * Sends an email change verification email with a formatted OTP.
+ * Used when a user wants to change their email address.
+ */
+export async function sendEmailChangeVerificationEmail(
+  email: string,
+  otpWithDash: string
+) {
+  return sendEmail({
+    to: email,
+    subject: `${otpWithDash} Verify your new email address`,
+    html: emailChangeVerificationTemplate(otpWithDash),
+  });
+}
+
+/**
+ * Sends a notification to the old email address when email is changed.
+ * Used for security transparency when email address is updated.
+ */
+export async function sendEmailChangeNotificationEmail(
+  oldEmail: string,
+  notificationData: {
+    firstName: string;
+  }
+) {
+  return sendEmail({
+    to: oldEmail,
+    subject: "Your AIForge email address has been changed",
+    html: emailChangeNotificationTemplate(notificationData),
   });
 }
 

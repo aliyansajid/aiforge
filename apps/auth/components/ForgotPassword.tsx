@@ -9,7 +9,7 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { emailSchema } from "@/schemas/auth";
 import { sendPasswordResetOtp } from "@/actions/auth";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 const ForgotPasswordForm = () => {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
 
   // Initialize the form with schema validation using Zod
@@ -31,21 +32,24 @@ const ForgotPasswordForm = () => {
    * Handle form submission for sending password reset OTP
    * On success: redirects user to the OTP verification screen
    */
-  async function onSubmit(values: z.infer<typeof emailSchema>) {
-    setIsLoading(true);
+  const onSubmit = (values: z.infer<typeof emailSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", values.email);
 
-    const formData = new FormData();
-    formData.append("email", values.email);
+        const response = await sendPasswordResetOtp(formData);
 
-    const response = await sendPasswordResetOtp(formData);
-    setIsLoading(false);
-
-    if (response.success) {
-      router.replace(`/reset-password?email=${values.email}`);
-    } else {
-      toast.error(response.error || "Failed to send OTP");
-    }
-  }
+        if (response.success) {
+          router.replace(`/reset-password?email=${values.email}`);
+        } else {
+          toast.error(response.error || "Failed to send OTP");
+        }
+      } catch (error) {
+        toast.error("Something went wrong. Please try again.");
+      }
+    });
+  };
 
   return (
     <Form {...form}>

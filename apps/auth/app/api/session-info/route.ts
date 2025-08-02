@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { auth } from "@repo/auth";
-import { sendNewLoginEmail } from "../../../lib/email/nodemailer";
+import { sendNewLoginEmail } from "@/lib/email/nodemailer";
 
 /**
  * Extracts client IP address from request headers.

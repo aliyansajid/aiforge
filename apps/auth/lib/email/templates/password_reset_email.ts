@@ -202,9 +202,7 @@ export const passwordResetEmailTemplate = (otp: string) => `
                               "
                             >
                               So long, and thanks for all the fish,<br />
-                              <strong style="font-weight: 500"
-                                >The AIForge Team</strong
-                              >
+                              <span style="font-weight: 500">The AIForge Team</span>
                             </div>
                           </td>
                         </tr>

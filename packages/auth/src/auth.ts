@@ -8,16 +8,19 @@ import bcrypt from "bcryptjs";
 import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
 
-// Create the adapter instance
+// Create and configure the Prisma adapter for database integration
 const adapter = PrismaAdapter(prisma);
 
+// Export NextAuth handlers and utility functions
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter,
+
+  // Configure authentication providers
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: true, // Allow same email across providers
     }),
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID,
@@ -25,17 +28,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
+      // Custom login handler using email/password
       authorize: async (credentials) => {
-        // Validate input
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required");
         }
 
-        // Find user in database
+        // Look up user by email
         const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email as string,
-          },
+          where: { email: credentials.email as string },
         });
 
         if (!user) {
@@ -43,11 +44,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         if (!user.password) {
+          // Prevent credentials login if user registered with social login
           throw new Error(
             "This account uses social login. Please sign in with Google or GitHub"
           );
         }
 
+        // Verify password
         const isPasswordValid = await bcrypt.compare(
           credentials.password as string,
           user.password
@@ -57,32 +60,53 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("Invalid credentials.");
         }
 
-        return user;
+        return user; // Successful login returns the user object
       },
     }),
   ],
+
+  // Override default NextAuth pages
   pages: {
     signIn: "/login",
     signOut: "/login",
     error: "/login",
   },
+
+  // JWT signing secret
   secret: process.env.AUTH_SECRET,
+
+  // Database sessions
   session: {
     strategy: "database",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 7 * 24 * 60 * 60, // Session lasts 7 days
   },
+
+  // Callback hooks to customize session and token logic
   callbacks: {
-    async jwt({ token, user, account }) {
-      // Mark credentials login in token
+    // Modify JWT token before it’s stored
+    async jwt({ token, account }) {
       if (account?.provider === "credentials") {
-        token.credentials = true;
+        token.credentials = true; // Flag for custom encode logic
       }
       return token;
     },
+
+    // Add custom data to the session object
+    async session({ session, user }) {
+      if (user?.firstName) {
+        session.user.name = `${user.firstName} ${user.lastName}`.trim();
+        session.user.firstName = user.firstName;
+        session.user.lastName = user.lastName;
+        session.user.createdAt = user.createdAt;
+      }
+      return session;
+    },
   },
+
+  // Custom JWT encoding logic (used only when session strategy = "database")
   jwt: {
     encode: async function (params) {
-      // Handle credentials provider - create database session
+      // For credentials login, manually create a database session
       if (params.token?.credentials) {
         const sessionToken = uuid();
 
@@ -90,21 +114,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("No user ID found in token");
         }
 
-        // Create session in database using the adapter
+        // Manually create a session in the database
         const createdSession = await adapter?.createSession?.({
-          sessionToken: sessionToken,
+          sessionToken,
           userId: params.token.sub,
-          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         });
 
         if (!createdSession) {
           throw new Error("Failed to create session");
         }
 
-        return sessionToken;
+        return sessionToken; // Return custom session token
       }
 
-      // Use default JWT encoding for other providers
+      // Default encoding for social logins
       return defaultEncode(params);
     },
   },

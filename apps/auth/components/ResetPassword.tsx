@@ -9,7 +9,7 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { resetPassword, verifyOtp } from "@/actions/auth";
@@ -21,7 +21,7 @@ const ResetPasswordForm = () => {
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [currentStep, setCurrentStep] = useState<"otp" | "password">("otp");
 
   // Extract just the password field from the schema
@@ -51,85 +51,80 @@ const ResetPasswordForm = () => {
    * Submits the OTP for verification.
    * On success, moves to the password reset step.
    */
-  async function onOtpSubmit(values: z.infer<typeof otpSchema>) {
-    setIsLoading(true);
+  const onOtpSubmit = (values: z.infer<typeof otpSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("otp", values.otp);
 
-    try {
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("otp", values.otp);
-
-      const response = await verifyOtp(formData);
-      if (response.success) {
-        passwordForm.reset({ password: "" });
-        setCurrentStep("password");
-      } else {
-        toast.error("Invalid or expired OTP");
+        const response = await verifyOtp(formData);
+        if (response.success) {
+          setCurrentStep("password");
+        } else {
+          toast.error(response.error);
+        }
+      } catch (error) {
+        toast.error("Failed to verify OTP. Please try again.");
       }
-    } catch (error) {
-      toast.error("Failed to verify OTP. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    });
+  };
 
   /**
    * Submits the new password.
    * On success, redirects the user to the login page.
    */
-  async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
-    setIsLoading(true);
+  const onPasswordSubmit = (values: z.infer<typeof passwordSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("password", values.password);
 
-    try {
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", values.password);
+        const response = await resetPassword(formData);
+        if (response.success) {
+          toast.success(response.message);
+          try {
+            // Automatically sign in the user with their new credentials
+            const signInResult = await signIn("credentials", {
+              email: email,
+              password: values.password,
+              redirect: false,
+            });
 
-      const response = await resetPassword(formData);
-      if (response.success) {
-        toast.success("Password updated successfully");
-        try {
-          // Automatically sign in the user with their new credentials
-          const signInResult = await signIn("credentials", {
-            email: email,
-            password: values.password,
-            redirect: false,
-          });
+            if (signInResult?.error) {
+              toast.error("Failed to log in. Please try logging in manually.");
+              router.push("/login");
+            } else {
+              // Capture session info
+              try {
+                await fetch("/api/session-info", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+              } catch (error) {
+                // Silently fail; user login is successful regardless of tracking
+                console.warn("Failed to capture session info:", error);
+              }
 
-          if (signInResult?.error) {
+              router.push("/");
+            }
+          } catch (error) {
             toast.error("Failed to log in. Please try logging in manually.");
             router.push("/login");
-          } else {
-            // Capture session info
-            try {
-              await fetch("/api/session-info", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              });
-            } catch (error) {
-              // Silently fail; user login is successful regardless of tracking
-              console.warn("Failed to capture session info:", error);
-            }
-
-            router.push("/");
           }
-        } catch (error) {
-          toast.error("Failed to log in. Please try logging in manually.");
-          router.push("/login");
+        } else {
+          toast.error(
+            response.error || "Failed to update password. Please try again."
+          );
         }
-      } else {
-        toast.error(
-          response.error || "Failed to update password. Please try again."
-        );
+      } catch (error) {
+        toast.error("An error occurred. Please try again.");
       }
-    } catch (error) {
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    });
+  };
 
   /**
    * Handles back navigation depending on current step.
@@ -172,7 +167,7 @@ const ResetPasswordForm = () => {
               variant={ButtonVariant.DEFAULT}
               text="Verify OTP"
               type="submit"
-              isLoading={isLoading}
+              isLoading={isPending}
             />
             <CustomButton
               variant={ButtonVariant.OUTLINE}
@@ -215,7 +210,7 @@ const ResetPasswordForm = () => {
               variant={ButtonVariant.DEFAULT}
               text="Update Password"
               type="submit"
-              isLoading={isLoading}
+              isLoading={isPending}
             />
             <CustomButton
               variant={ButtonVariant.OUTLINE}

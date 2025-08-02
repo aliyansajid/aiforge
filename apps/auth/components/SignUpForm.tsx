@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import GoogleAuthButton from "./GoogleAuthButton";
@@ -34,7 +34,7 @@ const SignUpForm = () => {
   const searchParams = useSearchParams();
 
   // UI state and step tracking
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [currentStep, setCurrentStep] = useState<
     "initial" | "email" | "otp" | "personal"
   >("initial");
@@ -101,103 +101,106 @@ const SignUpForm = () => {
    * Submits email and requests an OTP to be sent.
    * On success, advances to OTP input step.
    */
-  async function onEmailSubmit(values: z.infer<typeof emailSchema>) {
-    setIsLoading(true);
+  const onEmailSubmit = (values: z.infer<typeof emailSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", values.email);
 
-    const formData = new FormData();
-    formData.append("email", values.email);
+        const response = await sendOtp(formData);
 
-    const response = await sendOtp(formData);
-    setIsLoading(false);
-
-    if (response.success) {
-      setUserEmail(values.email);
-      otpForm.reset({ otp: "" });
-      setCurrentStep("otp");
-      router.replace("/sign-up", { scroll: false }); // Clean up query params
-    } else {
-      toast.error(response.error || "Failed to send OTP");
-    }
-  }
+        if (response.success) {
+          setUserEmail(values.email);
+          setCurrentStep("otp");
+          router.replace("/sign-up", { scroll: false }); // Clean up query params
+        } else {
+          toast.error(response.error || "Failed to send OTP");
+        }
+      } catch (error) {
+        toast.error("Something went wrong. Please try again.");
+      }
+    });
+  };
 
   /**
    * Verifies the OTP input by the user.
    * On success, moves to personal information form.
    */
-  async function onOtpSubmit(values: z.infer<typeof otpSchema>) {
-    setIsLoading(true);
+  const onOtpSubmit = (values: z.infer<typeof otpSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("email", userEmail);
+        formData.append("otp", values.otp);
 
-    const formData = new FormData();
-    formData.append("email", userEmail);
-    formData.append("otp", values.otp);
+        const response = await verifyOtp(formData);
 
-    const response = await verifyOtp(formData);
-    setIsLoading(false);
-
-    if (response.success) {
-      personalForm.reset({
-        firstName: "",
-        lastName: "",
-        password: "",
-      });
-      setCurrentStep("personal");
-    } else {
-      toast.error(response.error || "Invalid or expired OTP");
-    }
-  }
+        if (response.success) {
+          setCurrentStep("personal");
+        } else {
+          toast.error(response.error || "Invalid or expired OTP");
+        }
+      } catch (error) {
+        toast.error("Something went wrong. Please try again.");
+      }
+    });
+  };
 
   /**
    * Final step: submits personal information to create a new user.
    * Redirects to login page on success.
    */
-  async function onPersonalSubmit(values: z.infer<typeof personalInfoSchema>) {
-    setIsLoading(true);
-
-    const formData = new FormData();
-    formData.append("email", userEmail);
-    formData.append("firstName", values.firstName);
-    formData.append("lastName", values.lastName);
-    formData.append("password", values.password);
-
-    const response = await registerUser(formData);
-    setIsLoading(false);
-
-    if (response.success) {
+  const onPersonalSubmit = (values: z.infer<typeof personalInfoSchema>) => {
+    startTransition(async () => {
       try {
-        // Automatically sign in the user with their new credentials
-        const signInResult = await signIn("credentials", {
-          email: userEmail,
-          password: values.password,
-          redirect: false,
-        });
+        const formData = new FormData();
+        formData.append("email", userEmail);
+        formData.append("firstName", values.firstName);
+        formData.append("lastName", values.lastName);
+        formData.append("password", values.password);
 
-        if (signInResult?.error) {
-          toast.error("Failed to log in. Please try logging in manually.");
-          router.push("/login");
-        } else {
-          // Capture session info
+        const response = await registerUser(formData);
+
+        if (response.success) {
           try {
-            await fetch("/api/session-info", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+            // Automatically sign in the user with their new credentials
+            const signInResult = await signIn("credentials", {
+              email: userEmail,
+              password: values.password,
+              redirect: false,
             });
-          } catch (error) {
-            // Silently fail; user login is successful regardless of tracking
-            console.warn("Failed to capture session info:", error);
-          }
 
-          router.push("/");
+            if (signInResult?.error) {
+              toast.error("Failed to log in. Please try logging in manually.");
+              router.push("/login");
+            } else {
+              // Capture session info
+              try {
+                await fetch("/api/session-info", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+              } catch (error) {
+                // Silently fail; user login is successful regardless of tracking
+                console.warn("Failed to capture session info:", error);
+              }
+
+              router.push("/");
+            }
+          } catch (error) {
+            toast.error("Failed to log in. Please try logging in manually.");
+            router.push("/login");
+          }
+        } else {
+          toast.error(response.error || "Failed to create account");
         }
       } catch (error) {
-        toast.error("Failed to log in. Please try logging in manually.");
-        router.push("/login");
+        toast.error("Something went wrong. Please try again.");
       }
-    } else {
-      toast.error(response.error || "Failed to create account");
-    }
-  }
+    });
+  };
 
   // Step 1: Choose sign-up method
   if (currentStep === "initial") {
@@ -259,7 +262,7 @@ const SignUpForm = () => {
                 variant={ButtonVariant.DEFAULT}
                 text="Continue"
                 type="submit"
-                isLoading={isLoading}
+                isLoading={isPending}
               />
 
               <CustomButton
@@ -302,7 +305,7 @@ const SignUpForm = () => {
                 variant={ButtonVariant.DEFAULT}
                 text="Verify OTP"
                 type="submit"
-                isLoading={isLoading}
+                isLoading={isPending}
               />
               <CustomButton
                 variant={ButtonVariant.OUTLINE}
@@ -367,7 +370,7 @@ const SignUpForm = () => {
                 variant={ButtonVariant.DEFAULT}
                 text="Sign Up"
                 type="submit"
-                isLoading={isLoading}
+                isLoading={isPending}
               />
               <CustomButton
                 variant={ButtonVariant.OUTLINE}

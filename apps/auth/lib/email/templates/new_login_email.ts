@@ -141,36 +141,49 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                                 color: #333333;
                               "
                             >
-                              <h1>We've noticed a new login</h1>
+                              <h1
+                                style="
+                                  font-family: -apple-system, system-ui,
+                                    BlinkMacSystemFont;
+                                  font-size: 24px;
+                                  font-weight: 600;
+                                  line-height: 24px;
+                                  text-align: left;
+                                  color: #333333;
+                                  padding-bottom: 18px;
+                                "
+                              >
+                                We've noticed a new login
+                              </h1>
                               <p>Hi ${data.firstName},</p>
                               <p>
                                 This is a routine security alert. Someone logged
                                 into your AIForge account from a new IP address:
                               </p>
                               <p>
-                                <strong>Time:</strong> ${data.loginTime}<br />
-                                <strong>IP address:</strong> ${data.ipAddress}<br />
-                                <strong>Location:</strong> ${data.location}<br />
-                                <strong>Browser:</strong> ${data.browser}
+                                <span style="font-weight: 500;">Time:</span> ${data.loginTime}<br />
+                                <span style="font-weight: 500;">IP address:</span> ${data.ipAddress}<br />
+                                <span style="font-weight: 500;">Location:</span> ${data.location}<br />
+                                <span style="font-weight: 500;">Browser:</span> ${data.browser}
                               </p>
                               <p>
                                 If this was you, you can ignore this alert. If
                                 you noticed any suspicious activity on your
                                 account, please
                                 <a
-                                  href="https://aiforge.host/change-password"
+                                  href="https://accounts.aiforge.host/security"
                                   target="_blank"
                                   >change your password</a
                                 >
                                 and
                                 <a
-                                  href="https://aiforge.host/settings"
+                                  href="https://accounts.aiforge.host/security"
                                   target="_blank"
                                   >enable two-factor authentication</a
                                 >
                                 on your
                                 <a
-                                  href="https://aiforge.host/"
+                                  href="https://accounts.aiforge.host/"
                                   target="_blank"
                                   >account page</a
                                 >.
@@ -189,8 +202,7 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                           >
                             <div
                               style="
-                                font-family: -apple-system, system-ui,
-                                  BlinkMacSystemFont;
+                                font-family: -apple-system, system-ui, BlinkMacSystemFont;
                                 font-size: 15px;
                                 font-weight: 300;
                                 line-height: 24px;
@@ -199,9 +211,7 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                               "
                             >
                               So long, and thanks for all the fish,<br />
-                              <strong style="font-weight: 500"
-                                >The AIForge Team</strong
-                              >
+                              <span style="font-weight: 500">The AIForge Team</span>
                             </div>
                           </td>
                         </tr>
@@ -243,10 +253,7 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                                 color: #888888;
                               "
                             >
-                              © 2025
-                              <a href="https://aiforge.host" target="_blank"
-                                >AIForge</a
-                              >
+                              © 2025 <a href="https://aiforge.host">AIForge</a>
                             </div>
                           </td>
                         </tr>
@@ -274,8 +281,7 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                               <a
                                 href="mailto:support@aiforge.host"
                                 style="color: #888888"
-                                >support@aiforge.host</a
-                              >
+                                >support@aiforge.host</a>
                             </div>
                           </td>
                         </tr>

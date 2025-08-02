@@ -55,7 +55,9 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
               <InputOTPSlot index={0} />
               <InputOTPSlot index={1} />
               <InputOTPSlot index={2} />
-              <InputOTPSeparator />
+            </InputOTPGroup>
+            <InputOTPSeparator />
+            <InputOTPGroup>
               <InputOTPSlot index={3} />
               <InputOTPSlot index={4} />
               <InputOTPSlot index={5} />

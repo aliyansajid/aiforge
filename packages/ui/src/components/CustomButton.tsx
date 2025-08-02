@@ -6,7 +6,9 @@ interface ButtonProps {
   text: string;
   icon?: React.ReactNode;
   className?: string;
+  size?: "sm" | "lg" | "icon";
   isLoading?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
 }
@@ -25,17 +27,19 @@ const CustomButton = ({
   text,
   icon,
   className,
+  size = "lg",
   type,
   isLoading,
+  disabled,
   onClick,
 }: ButtonProps) => {
   return (
     <Button
       variant={variant}
-      disabled={isLoading}
+      disabled={disabled || isLoading}
       className={className}
       type={type}
-      size={"lg"}
+      size={size}
       onClick={onClick}
     >
       {isLoading ? (

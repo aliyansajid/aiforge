@@ -79,13 +79,13 @@ const LoginForm = () => {
 
     startTransition(async () => {
       try {
-        const result = await signIn("credentials", {
+        const response = await signIn("credentials", {
           email: values.email,
           password: values.password,
           redirect: false,
         });
 
-        if (result?.error) {
+        if (response?.error) {
           toast.error("Invalid credentials");
           return;
         }

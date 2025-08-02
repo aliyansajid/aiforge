@@ -5,8 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@repo/ui/components/sonner";
 import { auth, SessionProvider } from "@repo/auth";
 
-export const dynamic = "force-dynamic";
-
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
