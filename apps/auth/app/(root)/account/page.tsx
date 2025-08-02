@@ -30,6 +30,19 @@ const Account = async () => {
   const { isGoogleConnected, isGithubConnected, hasCredentials, userEmail } =
     accountStatus;
 
+  // Create a wrapper function that handles the form action properly
+  const handleDisableCredentials = async (
+    formData: FormData
+  ): Promise<void> => {
+    const result = await disableCredentials();
+    // Handle the result here if needed (e.g., show toast, redirect, etc.)
+    if (result?.error) {
+      console.error("Error disabling credentials:", result.error);
+      // You could add toast notification here
+    }
+    // Note: Form actions should not return values, so we handle success/error internally
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
@@ -101,7 +114,7 @@ const Account = async () => {
               </div>
             </div>
             {hasCredentials ? (
-              <form action={disableCredentials}>
+              <form action={handleDisableCredentials}>
                 <Button
                   variant="outline"
                   size="sm"
