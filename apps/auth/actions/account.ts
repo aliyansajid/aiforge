@@ -588,12 +588,13 @@ export async function disconnectOAuthProvider(provider: "google" | "github") {
   }
 }
 
-export async function disableCredentials() {
+export async function disableCredentials(formData: FormData): Promise<void> {
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       console.error("disableCredentials: No authenticated user");
+      // Instead of returning an error, you could throw or redirect
       throw new Error("Authentication required. Please sign in again.");
     }
 
@@ -638,11 +639,12 @@ export async function disableCredentials() {
     });
 
     revalidatePath("/account");
+
+    // Don't return anything - form actions should return void
   } catch (error) {
     console.error("disableCredentials error:", error);
-    return {
-      error: "Failed to disconnect. Please try again.",
-      success: false,
-    };
+    // You could handle this with redirects, cookies, etc.
+    // For now, we'll just rethrow
+    throw error;
   }
 }
