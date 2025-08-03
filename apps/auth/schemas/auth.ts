@@ -1,8 +1,38 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.email("Please enter a valid email address"),
+  email: z.email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+});
+
+// Separate schema just for MFA code input
+export const mfaCodeSchema = z.object({
+  mfaCode: z
+    .string()
+    .length(6, "MFA code must be 6 digits")
+    .regex(/^\d{6}$/, "MFA code must contain only digits"),
+});
+
+// Separate schema just for backup code input
+export const backupCodeInputSchema = z.object({
+  backupCode: z.string().min(1, "Backup code is required"),
+});
+
+// These are for server-side validation (keep existing)
+export const mfaVerificationSchema = z.object({
+  email: z.email(),
+  password: z.string(),
+  mfaCode: z
+    .string()
+    .length(6, "MFA code must be 6 digits")
+    .regex(/^\d{6}$/, "MFA code must contain only digits"),
+  isBackupCode: z.boolean().optional(),
+});
+
+export const backupCodeSchema = z.object({
+  email: z.email(),
+  password: z.string(),
+  backupCode: z.string().min(1, "Backup code is required"),
 });
 
 export const emailSchema = z.object({

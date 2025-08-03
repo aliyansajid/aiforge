@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 
 interface ButtonProps {
   variant: ButtonVariant;
-  text: string;
+  text?: string;
   icon?: React.ReactNode;
   className?: string;
   size?: "sm" | "lg" | "icon";

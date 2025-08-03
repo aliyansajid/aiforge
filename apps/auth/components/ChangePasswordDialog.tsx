@@ -1,39 +1,41 @@
 "use client";
 
 import z from "zod";
-import { toast } from "sonner";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Form } from "@repo/ui/components/form";
+import { updatePassword } from "@/actions/security";
+import { toast } from "sonner";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
-import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { personalInfoSchema } from "@/schemas/auth";
-import { setupPassword } from "@/actions/account";
 
-const formSchema = personalInfoSchema.pick({ password: true });
-
-const PasswordSetupDialog = () => {
+const ChangePasswordDialog = () => {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const formSchema = z.object({
+    oldPassword: z.string(),
+    newPassword: z.string(),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      password: "",
+      oldPassword: "",
+      newPassword: "",
     },
   });
 
@@ -41,12 +43,14 @@ const PasswordSetupDialog = () => {
     startTransition(async () => {
       try {
         const formData = new FormData();
-        formData.append("password", values.password);
+        formData.append("oldPassword", values.oldPassword);
+        formData.append("newPassword", values.newPassword);
 
-        const response = await setupPassword(formData);
+        const response = await updatePassword(formData);
 
         if (response.success) {
           setOpen(false);
+          form.reset();
           toast.success(response.message);
         } else {
           toast.error(response.error);
@@ -62,30 +66,40 @@ const PasswordSetupDialog = () => {
       <DialogTrigger asChild>
         <CustomButton
           variant={ButtonVariant.OUTLINE}
-          text="Set up"
           size="sm"
+          text="Change password"
           className="rounded-full"
         />
       </DialogTrigger>
-
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <DialogHeader>
-              <DialogTitle>Set up password</DialogTitle>
-              <DialogDescription>
-                Create a password to enable email and password sign-in for your
-                account.
-              </DialogDescription>
+              <DialogTitle>Change Password</DialogTitle>
             </DialogHeader>
 
-            <CustomFormField
-              control={form.control}
-              fieldType={FormFieldType.INPUT}
-              name="password"
-              inputType="password"
-              placeholder="********"
-            />
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <CustomFormField
+                  control={form.control}
+                  fieldType={FormFieldType.INPUT}
+                  inputType="password"
+                  name="oldPassword"
+                  label="Old password"
+                  placeholder="********"
+                />
+              </div>
+              <div className="flex-1">
+                <CustomFormField
+                  control={form.control}
+                  fieldType={FormFieldType.INPUT}
+                  inputType="password"
+                  name="newPassword"
+                  label="New password"
+                  placeholder="********"
+                />
+              </div>
+            </div>
 
             <DialogFooter>
               <DialogClose asChild>
@@ -97,9 +111,9 @@ const PasswordSetupDialog = () => {
               </DialogClose>
               <CustomButton
                 variant={ButtonVariant.DEFAULT}
-                text="Set up password"
-                isLoading={isPending}
+                text="Save"
                 type="submit"
+                isLoading={isPending}
               />
             </DialogFooter>
           </form>
@@ -109,4 +123,4 @@ const PasswordSetupDialog = () => {
   );
 };
 
-export default PasswordSetupDialog;
+export default ChangePasswordDialog;

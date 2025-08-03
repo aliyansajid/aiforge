@@ -47,7 +47,7 @@ const EditNameDialog = ({ firstName, lastName }: EditNameDialogProps) => {
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
         const formData = new FormData();
@@ -86,10 +86,7 @@ const EditNameDialog = ({ firstName, lastName }: EditNameDialogProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <DialogHeader>
               <DialogTitle>Edit name</DialogTitle>
             </DialogHeader>
