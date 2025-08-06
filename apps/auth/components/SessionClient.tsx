@@ -8,6 +8,7 @@ import { DataTable } from "./data-table/datatable";
 import { columns, SessionTableData } from "./data-table/columns";
 import { signOutAllSessions } from "@/actions/session";
 import { toast } from "sonner";
+import { signOut } from "@repo/auth";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -83,6 +84,7 @@ const SessionsClient = ({ session, activeSessions }: SessionsClientProps) => {
     startTransition(async () => {
       try {
         await signOutAllSessions();
+        await signOut();
       } catch (error) {
         toast.error("An unexpected error occurred. Please try again later.");
       }

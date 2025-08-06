@@ -9,25 +9,28 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String    @id @default(cuid())
   firstName     String
   lastName      String
-  email         String       @unique
+  email         String    @unique
   emailVerified DateTime?
   password      String?
   image         String?
-  isMfaEnabled  Boolean      @default(false)
+  isMfaEnabled  Boolean   @default(false)
+  deletedAt     DateTime?
 
   role   UserRole      @default(CONSUMER)
   status AccountStatus @default(ACTIVE)
 
-  accounts   Account[]
-  sessions   Session[]
-  mfaDevices MfaDevice[]
+  accounts      Account[]
+  sessions      Session[]
+  mfaDevices    MfaDevice[]
   recoveryCodes RecoveryCode[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([deletedAt])
 }
 
 model Account {

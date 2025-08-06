@@ -144,8 +144,6 @@ export async function signOutAllSessions() {
       },
     });
 
-    // Sign out the user
-    await signOut();
     return { success: true };
   } catch (error) {
     console.error("Error signing out all sessions:", error);
