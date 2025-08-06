@@ -1,402 +1,371 @@
 "use server";
 
-import z from "zod";
 import { auth } from "@repo/auth";
 import { prisma } from "@repo/db";
 import bcrypt from "bcryptjs";
-import { generateSecret, verifyToken } from "node-2fa";
+import {
+  addMFADeviceSchema,
+  changePasswordSchema,
+  emailSchema,
+} from "@/schemas/auth";
+import { authenticator } from "otplib";
 import QRCode from "qrcode";
-import crypto from "crypto";
-
-const ENCRYPTION_KEY = process.env.MFA_ENCRYPTION_KEY!;
-const ALGORITHM = "aes-256-cbc";
-
-// Validate encryption key on startup
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 64) {
-  throw new Error(
-    "MFA_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)"
-  );
-}
-
-// Encryption utility functions
-function encrypt(text: string): string {
-  try {
-    const iv = crypto.randomBytes(16);
-    const key = Buffer.from(ENCRYPTION_KEY, "hex"); // Parse as hex
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-
-    let encrypted = cipher.update(text, "utf8", "hex");
-    encrypted += cipher.final("hex");
-
-    return iv.toString("hex") + ":" + encrypted;
-  } catch (error) {
-    console.error("Encryption error:", error);
-    throw new Error("Failed to encrypt data");
-  }
-}
-
-function decrypt(text: string): string {
-  try {
-    const textParts = text.split(":");
-    const iv = Buffer.from(textParts.shift()!, "hex");
-    const encryptedText = textParts.join(":");
-    const key = Buffer.from(ENCRYPTION_KEY, "hex"); // Parse as hex
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    let decrypted = decipher.update(encryptedText, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-
-    return decrypted;
-  } catch (error) {
-    console.error("Decryption error:", error);
-    throw new Error("Failed to decrypt data");
-  }
-}
 
 export async function updatePassword(formData: FormData) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    console.error("updatePassword: No authenticated user");
-    return {
-      error: "Authentication required. Please sign in again.",
-      success: false,
-    };
-  }
-
   const rawData = {
     oldPassword: formData.get("oldPassword") as string,
     newPassword: formData.get("newPassword") as string,
   };
 
-  // Validate required fields
+  // Check if all required fields are provided
   if (!rawData.oldPassword || !rawData.newPassword) {
-    console.error("updatePassword: Missing required fields", rawData);
-    return {
-      error: "Old password and new password are required",
-      success: false,
-    };
-  }
-
-  const passwordSchema = z.object({
-    oldPassword: z.string(),
-    newPassword: z.string(),
-  });
-
-  const validationResult = passwordSchema.safeParse(rawData);
-  if (!validationResult.success) {
-    console.error(
-      "updatePassword validation error:",
-      validationResult.error.issues
-    );
-    return {
-      error:
-        validationResult.error.issues[0]?.message ||
-        "Please check your input and try again",
-      success: false,
-    };
-  }
-
-  const { oldPassword, newPassword } = validationResult.data;
-
-  const user = await prisma.user.findUnique({
-    where: {
-      id: session.user.id,
-    },
-  });
-
-  if (!user) {
-    console.error("updatePassword: User not found");
-    return {
-      error: "User not found",
-      success: false,
-    };
-  }
-
-  if (!user.password) {
-    console.error("updatePassword: User password not set");
-    return {
-      error: "User password not set",
-      success: false,
-    };
-  }
-
-  const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
-
-  if (!isPasswordValid) {
-    console.error("updatePassword: Old password is incorrect", rawData);
-    return {
-      error: "Old password is incorrect",
-      success: false,
-    };
-  }
-
-  // Update the password in the database
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { password: hashedPassword },
-  });
-
-  return {
-    success: true,
-    message: "Password updated successfully",
-  };
-}
-
-// Generate MFA secret and QR code
-export async function generateMfaSecret() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    console.error("generateMfaSecret: No authenticated user");
-    return {
-      error: "Authentication required. Please sign in again.",
-      success: false,
-    };
-  }
-
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { email: true },
-    });
-
-    if (!user) {
-      return {
-        error: "User not found",
-        success: false,
-      };
-    }
-
-    // Generate TOTP secret
-    const secret = generateSecret({
-      name: user.email || "User",
-      account: "AIForge",
-    });
-
-    // Generate QR code as data URL
-    const qrCodeUrl = await QRCode.toDataURL(secret.uri);
-
-    return {
-      success: true,
-      data: {
-        secret: secret.secret,
-        qrCodeUrl,
-        otpAuthUrl: secret.uri,
-      },
-    };
-  } catch (error) {
-    console.error("generateMfaSecret error:", error);
-    return {
-      error: "Failed to generate MFA secret",
-      success: false,
-    };
-  }
-}
-
-// Verify OTP and save MFA device
-export async function verifyAndSaveMfaDevice(formData: FormData) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    console.error("verifyAndSaveMfaDevice: No authenticated user");
-    return {
-      error: "Authentication required. Please sign in again.",
-      success: false,
-    };
-  }
-
-  const rawData = {
-    otp: formData.get("otp") as string,
-    name: formData.get("name") as string,
-    secret: formData.get("secret") as string,
-  };
-
-  console.log("Raw form data:", rawData);
-
-  // Validate required fields
-  if (!rawData.otp || !rawData.name || !rawData.secret) {
-    console.error("verifyAndSaveMfaDevice: Missing required fields", rawData);
     return {
       error: "All fields are required",
       success: false,
     };
   }
 
-  const mfaSchema = z.object({
-    otp: z
-      .string()
-      .length(6, "OTP must be 6 digits")
-      .regex(/^\d{6}$/, "OTP must contain only digits"),
-    name: z
-      .string()
-      .min(3, "Name must be at least 3 characters")
-      .max(50, "Name cannot exceed 50 characters"),
-    secret: z.string().min(1, "Secret is required"),
-  });
-
-  const validationResult = mfaSchema.safeParse(rawData);
+  const validationResult = changePasswordSchema.safeParse(rawData);
   if (!validationResult.success) {
-    console.error(
-      "verifyAndSaveMfaDevice validation error:",
-      validationResult.error.issues
-    );
     return {
-      error:
-        validationResult.error.issues[0]?.message ||
-        "Please check your input and try again",
+      error: validationResult.error.issues[0]?.message || "Invalid input",
       success: false,
     };
   }
 
-  const { otp, name, secret } = validationResult.data;
-
-  console.log("Validated data:", { otp, name, secretLength: secret.length });
+  const { oldPassword, newPassword } = validationResult.data;
 
   try {
-    // Verify the OTP
-    console.log("Verifying OTP with secret...");
-    const verification = verifyToken(secret, otp);
+    const session = await auth();
 
-    console.log("Verification result:", verification);
-
-    if (!verification || verification.delta !== 0) {
-      console.error("verifyAndSaveMfaDevice: Invalid OTP", {
-        otp,
-        delta: verification?.delta,
-        verification,
-      });
+    if (!session?.user?.id) {
       return {
-        error:
-          "Invalid OTP code. Please ensure the code is current and try again.",
+        error: "Your session has expired. Please log in again.",
         success: false,
       };
     }
 
-    console.log("OTP verified successfully!");
-
-    // Check if device name already exists for this user
-    const existingDevice = await prisma.mfaDevice.findFirst({
-      where: {
-        userId: session.user.id,
-        name: name,
-      },
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { password: true },
     });
 
-    if (existingDevice) {
+    if (!user || !user.password) {
       return {
-        error:
-          "A device with this name already exists. Please choose a different name.",
+        error: "Unable to process request. Please try again.",
         success: false,
       };
     }
 
-    console.log("Encrypting secret and saving device...");
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 
-    // Encrypt and save the secret
-    const encryptedSecret = encrypt(secret);
+    if (!isPasswordValid) {
+      return {
+        error: "Incorrect old password",
+        success: false,
+      };
+    }
 
-    const newDevice = await prisma.mfaDevice.create({
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { password: hashedPassword },
+    });
+
+    return { message: "Password updated successfully", success: true };
+  } catch (error) {
+    console.error("updatePassword error:", error);
+    return {
+      error: "An unexpected error occurred. Please try again later.",
+      success: false,
+    };
+  }
+}
+
+export async function generateMfaSetup() {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id || !session?.user?.email) {
+      return {
+        error: "Your session has expired. Please log in again.",
+        success: false,
+      };
+    }
+
+    const validationResult = emailSchema.safeParse({
+      email: session.user.email,
+    });
+    if (!validationResult.success) {
+      return {
+        error: validationResult.error.issues[0]?.message || "Invalid email",
+        success: false,
+      };
+    }
+
+    const { email } = validationResult.data;
+
+    // Generate MFA secret
+    const secret = authenticator.generateSecret();
+    const issuer = "AIForge";
+    const otpauthUrl = authenticator.keyuri(email, issuer, secret);
+
+    // Generate QR code data URL
+    const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+    return {
+      message: "MFA setup generated successfully",
+      success: true,
+      data: { qrCodeUrl, secret },
+    };
+  } catch (error) {
+    console.error("generateMfaSetup error:", error);
+    return {
+      error: "An unexpected error occurred. Please try again later.",
+      success: false,
+    };
+  }
+}
+
+export async function addMfaDevice(formData: FormData) {
+  const rawData = {
+    name: formData.get("name") as string,
+    otp: formData.get("otp") as string,
+    secret: formData.get("secret") as string,
+  };
+
+  // Check if all required fields are provided
+  if (!rawData.name || !rawData.otp || !rawData.secret) {
+    return {
+      error: "All fields are required",
+      success: false,
+    };
+  }
+
+  const validationResult = addMFADeviceSchema.safeParse(rawData);
+  if (!validationResult.success) {
+    return {
+      error: validationResult.error.issues[0]?.message || "Invalid input",
+      success: false,
+    };
+  }
+
+  const { name, otp, secret } = validationResult.data;
+
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return {
+        error: "Your session has expired. Please log in again.",
+        success: false,
+      };
+    }
+
+    // Verify the new device OTP
+    const isValidOtp = authenticator.check(otp, secret);
+    if (!isValidOtp) {
+      return {
+        error: "Invalid OTP. Please try again.",
+        success: false,
+      };
+    }
+
+    // Save MFA device and ensure MFA is enabled
+    await prisma.mfaDevice.create({
       data: {
-        name,
-        secret: encryptedSecret,
         userId: session.user.id,
-        verified: true,
-        lastUsed: new Date(),
+        name,
+        secret,
       },
     });
 
-    console.log("Device created:", newDevice.id);
-
-    // Enable MFA for the user if this is their first device
-    const deviceCount = await prisma.mfaDevice.count({
-      where: { userId: session.user.id },
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { isMfaEnabled: true },
     });
 
-    console.log("Total devices for user:", deviceCount);
+    return { message: "MFA device added successfully", success: true };
+  } catch (error) {
+    console.error("addMfaDevice error:", error);
+    return {
+      error: "An unexpected error occurred. Please try again later.",
+      success: false,
+    };
+  }
+}
 
-    if (deviceCount === 1) {
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: { mfaEnabled: true },
-      });
-      console.log("MFA enabled for user");
+export async function verifyMfaForAction(
+  formData: FormData,
+  action: "add-device" | "delete-device" | "recovery-codes" = "add-device"
+) {
+  const rawData = {
+    otp: formData.get("otp") as string | null,
+    recoveryCode: formData.get("recoveryCode") as string | null,
+    deviceId: formData.get("deviceId") as string | null,
+  };
+
+  // Check if at least one verification method is provided
+  if (!rawData.otp && !rawData.recoveryCode) {
+    return {
+      error: "Please provide either an OTP or recovery code",
+      success: false,
+    };
+  }
+
+  // Validate individual fields
+  if (rawData.otp) {
+    if (!/^\d{6}$/.test(rawData.otp)) {
+      return {
+        error: "OTP must be a 6-digit number",
+        success: false,
+      };
+    }
+  }
+
+  if (rawData.recoveryCode) {
+    if (!/^\d{6}$/.test(rawData.recoveryCode)) {
+      return {
+        error: "Recovery code must be a 6-digit number",
+        success: false,
+      };
+    }
+  }
+
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return {
+        error: "Your session has expired. Please log in again.",
+        success: false,
+      };
+    }
+
+    // Get user's MFA devices and recovery codes
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        mfaDevices: {
+          select: { id: true, secret: true },
+        },
+        recoveryCodes: {
+          where: { isUsed: false },
+          select: { id: true, code: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return {
+        error: "Unable to process request. Please try again.",
+        success: false,
+      };
+    }
+
+    // Check if verification is required based on action and device count
+    const deviceCount = user.mfaDevices.length;
+    let verificationRequired = false;
+
+    if (action === "add-device" && deviceCount === 1) {
+      verificationRequired = true;
+    } else if (action === "delete-device" && deviceCount === 1) {
+      verificationRequired = true;
+    } else if (action === "recovery-codes" && deviceCount > 0) {
+      verificationRequired = true;
+    }
+
+    if (!verificationRequired) {
+      return {
+        error: "Verification not required for your current setup.",
+        success: false,
+      };
+    }
+
+    let isValid = false;
+
+    // Verify OTP if provided
+    if (rawData.otp) {
+      isValid = user.mfaDevices.some((device) =>
+        authenticator.check(rawData.otp!, device.secret)
+      );
+    }
+
+    // Verify recovery code if provided (and OTP wasn't valid)
+    if (!isValid && rawData.recoveryCode) {
+      const matchingRecoveryCode = user.recoveryCodes.find(
+        (recovery) => recovery.code === rawData.recoveryCode
+      );
+
+      if (matchingRecoveryCode) {
+        isValid = true;
+
+        // Mark the recovery code as used
+        await prisma.recoveryCode.update({
+          where: { id: matchingRecoveryCode.id },
+          data: {
+            isUsed: true,
+            updatedAt: new Date(),
+          },
+        });
+      }
+    }
+
+    if (!isValid) {
+      return {
+        error: "Invalid recovery code. Please try again.",
+        success: false,
+      };
     }
 
     return {
+      message: "Verification successful",
       success: true,
-      message: "Authenticator added successfully",
+      data: {
+        deviceId: rawData.deviceId,
+        action: action,
+      },
     };
   } catch (error) {
-    console.error("verifyAndSaveMfaDevice error:", error);
+    console.error("verifyMfaForAction error:", error);
     return {
-      error: "Failed to setup authenticator. Please try again.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
   }
 }
 
-// Get user's MFA devices
-export async function getMfaDevices() {
-  const session = await auth();
+export async function deleteMfaDevice(formData: FormData) {
+  const rawData = { deviceId: formData.get("deviceId") as string };
 
-  if (!session?.user?.id) {
+  if (!rawData.deviceId) {
     return {
-      error: "Authentication required",
+      error: "Device ID is required",
       success: false,
     };
   }
+
+  const { deviceId } = rawData;
 
   try {
-    const devices = await prisma.mfaDevice.findMany({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        name: true,
-        verified: true,
-        lastUsed: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const session = await auth();
 
-    return {
-      success: true,
-      data: devices,
-    };
-  } catch (error) {
-    console.error("getMfaDevices error:", error);
-    return {
-      error: "Failed to fetch MFA devices",
-      success: false,
-    };
-  }
-}
-
-// Remove MFA device
-export async function removeMfaDevice(deviceId: string) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return {
-      error: "Authentication required",
-      success: false,
-    };
-  }
-
-  try {
-    // Verify the device belongs to the user
-    const device = await prisma.mfaDevice.findFirst({
-      where: {
-        id: deviceId,
-        userId: session.user.id,
-      },
-    });
-
-    if (!device) {
+    if (!session?.user?.id) {
       return {
-        error: "Device not found",
+        error: "Your session has expired. Please log in again.",
+        success: false,
+      };
+    }
+
+    // Check if the device exists and belongs to the user
+    const device = await prisma.mfaDevice.findUnique({
+      where: { id: deviceId },
+      select: { userId: true },
+    });
+
+    if (!device || device.userId !== session.user.id) {
+      return {
+        error: "Unable to process request. Please try again.",
         success: false,
       };
     }
@@ -411,398 +380,155 @@ export async function removeMfaDevice(deviceId: string) {
       where: { userId: session.user.id },
     });
 
-    // Disable MFA if no devices left
+    // If no devices remain, disable MFA
     if (remainingDevices === 0) {
       await prisma.user.update({
         where: { id: session.user.id },
-        data: { mfaEnabled: false },
+        data: { isMfaEnabled: false },
       });
     }
 
-    return {
-      success: true,
-      message: "Authenticator removed successfully",
-    };
+    return { message: "MFA device deleted successfully", success: true };
   } catch (error) {
-    console.error("removeMfaDevice error:", error);
+    console.error("deleteMfaDevice error:", error);
     return {
-      error: "Failed to remove authenticator",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
   }
 }
 
-export async function verifyMfaForBackupCodes(otp: string) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return {
-      error: "Authentication required",
-      success: false,
-    };
-  }
-
+export async function generateRecoveryCodes() {
   try {
-    // Get user's MFA devices
-    const devices = await prisma.mfaDevice.findMany({
-      where: {
-        userId: session.user.id,
-        verified: true,
-      },
-      select: { secret: true },
-    });
+    const session = await auth();
 
-    if (devices.length === 0) {
+    if (!session?.user?.id) {
       return {
-        error: "No verified MFA devices found",
+        error: "Your session has expired. Please log in again.",
         success: false,
       };
     }
 
-    // Verify OTP against any of the user's devices
-    for (const device of devices) {
-      try {
-        const decryptedSecret = decrypt(device.secret);
-        const verification = verifyToken(decryptedSecret, otp);
+    // Generate 10 random 6-digit codes
+    const codes = Array.from({ length: 10 }, () => {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    });
 
-        if (verification && verification.delta === 0) {
-          console.log(
-            "MFA verification successful for backup codes generation"
-          );
-          return {
-            success: true,
-            message: "Device verified successfully",
-          };
-        }
-      } catch (error) {
-        console.error("Error verifying device:", error);
-        continue; // Try next device
-      }
+    // Delete existing recovery codes
+    await prisma.recoveryCode.deleteMany({
+      where: { userId: session.user.id },
+    });
+
+    // Create new recovery codes
+    await prisma.recoveryCode.createMany({
+      data: codes.map((code) => ({
+        userId: session.user.id!,
+        code: code,
+      })),
+    });
+
+    return {
+      message: "Recovery codes generated successfully",
+      success: true,
+      data: { codes },
+    };
+  } catch (error) {
+    console.error("generateRecoveryCodes error:", error);
+    return {
+      error: "An unexpected error occurred. Please try again later.",
+      success: false,
+    };
+  }
+}
+
+export async function getMfaStatus() {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return {
+        error: "Your session has expired. Please log in again.",
+        success: false,
+      };
     }
 
-    return {
-      error: "Invalid verification code. Please try again.",
-      success: false,
-    };
-  } catch (error) {
-    console.error("verifyMfaForBackupCodes error:", error);
-    return {
-      error: "Failed to verify device",
-      success: false,
-    };
-  }
-}
-
-// Updated generateBackupCodes - remove the MFA check since we verify separately
-export async function generateBackupCodes() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return {
-      error: "Authentication required",
-      success: false,
-    };
-  }
-
-  try {
-    // Generate 10 backup codes (8 characters each, alphanumeric)
-    const backupCodes = Array.from({ length: 10 }, () => {
-      return crypto.randomBytes(4).toString("hex").toUpperCase();
-    });
-
-    // Hash the backup codes before storing
-    const hashedCodes = await Promise.all(
-      backupCodes.map((code) => bcrypt.hash(code, 10))
-    );
-
-    // Update user with new backup codes
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { backupCodes: hashedCodes },
-    });
-
-    console.log("Generated backup codes for user:", session.user.id);
-
-    return {
-      success: true,
-      data: {
-        codes: backupCodes,
-        message: "New backup codes generated successfully",
-      },
-    };
-  } catch (error) {
-    console.error("generateBackupCodes error:", error);
-    return {
-      error: "Failed to generate backup codes",
-      success: false,
-    };
-  }
-}
-
-// Check if user has backup codes
-export async function hasBackupCodes() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return {
-      error: "Authentication required",
-      success: false,
-    };
-  }
-
-  try {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { backupCodes: true, mfaEnabled: true },
+      select: {
+        isMfaEnabled: true,
+        mfaDevices: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+          },
+        },
+      },
     });
 
     if (!user) {
       return {
-        error: "User not found",
+        error: "Unable to process request. Please try again.",
         success: false,
       };
     }
 
     return {
+      message: "MFA status retrieved successfully",
       success: true,
       data: {
-        hasBackupCodes: user.backupCodes && user.backupCodes.length > 0,
-        mfaEnabled: user.mfaEnabled,
-        codesCount: user.backupCodes?.length || 0,
+        isMfaEnabled: user.isMfaEnabled,
+        mfaDevices: user.mfaDevices,
       },
     };
   } catch (error) {
-    console.error("hasBackupCodes error:", error);
+    console.error("getMfaStatus error:", error);
     return {
-      error: "Failed to check backup codes",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
   }
 }
 
-export async function verifyBackupCode(code: string, userId: string) {
+export async function getRecoveryCodesStatus() {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { backupCodes: true, mfaEnabled: true },
-    });
+    const session = await auth();
 
-    if (!user?.mfaEnabled || !user.backupCodes?.length) {
+    if (!session?.user?.id) {
       return {
-        error: "No backup codes available",
+        error: "Your session has expired. Please log in again.",
         success: false,
       };
     }
 
-    // Check if the provided code matches any of the stored hashed codes
-    for (let i = 0; i < user.backupCodes.length; i++) {
-      const hashedCode = user.backupCodes[i];
-
-      // Add type check to ensure hashedCode is not undefined
-      if (!hashedCode) {
-        continue;
-      }
-
-      const isMatch = await bcrypt.compare(code.toUpperCase(), hashedCode);
-
-      if (isMatch) {
-        // Remove the used code from the array
-        const updatedCodes = user.backupCodes.filter((_, index) => index !== i);
-
-        await prisma.user.update({
-          where: { id: userId },
-          data: { backupCodes: updatedCodes },
-        });
-
-        console.log("Backup code used successfully for user:", userId);
-
-        return {
-          success: true,
-          data: {
-            message: "Backup code verified successfully",
-            remainingCodes: updatedCodes.length,
-          },
-        };
-      }
-    }
+    // Get both unused and total recovery codes count
+    const [unusedCount, totalCount] = await Promise.all([
+      prisma.recoveryCode.count({
+        where: {
+          userId: session.user.id,
+          isUsed: false,
+        },
+      }),
+      prisma.recoveryCode.count({
+        where: {
+          userId: session.user.id,
+        },
+      }),
+    ]);
 
     return {
-      error: "Invalid backup code",
-      success: false,
-    };
-  } catch (error) {
-    console.error("verifyBackupCode error:", error);
-    return {
-      error: "Failed to verify backup code",
-      success: false,
-    };
-  }
-}
-
-// Check if user needs MFA verification
-export async function checkMfaRequired(email: string, password: string) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        password: true,
-        mfaEnabled: true,
-        status: true,
-      },
-    });
-
-    if (!user || !user.password) {
-      return {
-        error: "Invalid credentials",
-        success: false,
-      };
-    }
-
-    // Verify password first
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return {
-        error: "Invalid credentials",
-        success: false,
-      };
-    }
-
-    // Check account status
-    if (user.status !== "ACTIVE") {
-      return {
-        error: "Account is not active",
-        success: false,
-      };
-    }
-
-    return {
+      message: "Recovery codes status retrieved successfully",
       success: true,
       data: {
-        userId: user.id,
-        mfaRequired: user.mfaEnabled,
+        hasRecoveryCodes: unusedCount > 0,
+        totalCodes: unusedCount,
+        hasEverGenerated: totalCount > 0,
       },
     };
   } catch (error) {
-    console.error("checkMfaRequired error:", error);
+    console.error("getRecoveryCodesStatus error:", error);
     return {
-      error: "Authentication failed",
-      success: false,
-    };
-  }
-}
-
-// Verify MFA code and complete login
-export async function verifyMfaAndLogin(
-  email: string,
-  password: string,
-  mfaCode: string
-) {
-  try {
-    // First verify credentials again
-    const checkResult = await checkMfaRequired(email, password);
-    if (!checkResult.success || !checkResult.data) {
-      return checkResult;
-    }
-
-    const { userId } = checkResult.data;
-
-    // Get user's MFA devices
-    const devices = await prisma.mfaDevice.findMany({
-      where: {
-        userId,
-        verified: true,
-      },
-      select: { secret: true },
-    });
-
-    if (devices.length === 0) {
-      return {
-        error: "No MFA devices found",
-        success: false,
-      };
-    }
-
-    // Verify MFA code against any device
-    let isValidMfa = false;
-    for (const device of devices) {
-      try {
-        const decryptedSecret = decrypt(device.secret);
-        const verification = verifyToken(decryptedSecret, mfaCode);
-
-        if (verification && Math.abs(verification.delta) <= 1) {
-          // Allow 1 step tolerance
-          isValidMfa = true;
-          break;
-        }
-      } catch (error) {
-        console.error("Error verifying MFA device:", error);
-        continue;
-      }
-    }
-
-    if (!isValidMfa) {
-      return {
-        error: "Invalid MFA code",
-        success: false,
-      };
-    }
-
-    // Update last used timestamp for MFA devices
-    await prisma.mfaDevice.updateMany({
-      where: { userId },
-      data: { lastUsed: new Date() },
-    });
-
-    return {
-      success: true,
-      data: {
-        userId,
-        message: "MFA verification successful",
-      },
-    };
-  } catch (error) {
-    console.error("verifyMfaAndLogin error:", error);
-    return {
-      error: "MFA verification failed",
-      success: false,
-    };
-  }
-}
-
-// Verify backup code and complete login
-export async function verifyBackupCodeAndLogin(
-  email: string,
-  password: string,
-  backupCode: string
-) {
-  try {
-    // First verify credentials
-    const checkResult = await checkMfaRequired(email, password);
-    if (!checkResult.success || !checkResult.data) {
-      return checkResult;
-    }
-
-    const { userId } = checkResult.data;
-
-    // Verify backup code
-    const backupResult = await verifyBackupCode(backupCode, userId);
-    if (!backupResult.success) {
-      return backupResult;
-    }
-
-    return {
-      success: true,
-      data: {
-        userId,
-        message: "Backup code verification successful",
-        remainingCodes: backupResult.data?.remainingCodes || 0,
-      },
-    };
-  } catch (error) {
-    console.error("verifyBackupCodeAndLogin error:", error);
-    return {
-      error: "Backup code verification failed",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
   }

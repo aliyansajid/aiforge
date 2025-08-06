@@ -147,8 +147,9 @@ export const emailChangeVerificationTemplate = (otp: string) => `
                               </h1>
                               <p>Hi,</p>
                               <p>
-                                We received a request to change your email address on your AIForge account.
-                                Please use the code below to verify your new email address.
+                                We received a request to change your email
+                                address on your AIForge account. Please use the
+                                code below to verify your new email address.
                               </p>
                               <table width="100%">
                                 <tbody>
@@ -174,13 +175,15 @@ export const emailChangeVerificationTemplate = (otp: string) => `
                                 </tbody>
                               </table>
                               <p>
-                                If you did not request this email change, please contact our support team immediately.
-                                Your current email address will remain unchanged until this verification is completed.
+                                If you did not request this email change, please
+                                contact our support team immediately. Your
+                                current email address will remain unchanged
+                                until this verification is completed.
                               </p>
                             </div>
                           </td>
                         </tr>
-                         <tr>
+                        <tr>
                           <td
                             align="left"
                             style="
@@ -191,7 +194,8 @@ export const emailChangeVerificationTemplate = (otp: string) => `
                           >
                             <div
                               style="
-                                font-family: -apple-system, system-ui, BlinkMacSystemFont;
+                                font-family: -apple-system, system-ui,
+                                  BlinkMacSystemFont;
                                 font-size: 15px;
                                 font-weight: 300;
                                 line-height: 24px;
@@ -200,7 +204,9 @@ export const emailChangeVerificationTemplate = (otp: string) => `
                               "
                             >
                               So long, and thanks for all the fish,<br />
-                              <span style="font-weight: 500">The AIForge Team</span>
+                              <span style="font-weight: 500"
+                                >The AIForge Team</span
+                              >
                             </div>
                           </td>
                         </tr>
@@ -270,7 +276,8 @@ export const emailChangeVerificationTemplate = (otp: string) => `
                               <a
                                 href="mailto:support@aiforge.host"
                                 style="color: #888888"
-                                >support@aiforge.host</a>
+                                >support@aiforge.host</a
+                              >
                             </div>
                           </td>
                         </tr>

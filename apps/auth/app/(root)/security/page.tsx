@@ -1,104 +1,176 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  getMfaStatus,
+  getRecoveryCodesStatus,
+  verifyMfaForAction,
+  deleteMfaDevice,
+} from "@/actions/security";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
+import VerifyMfaDeviceDialog from "@/components/VerifyMfaDeviceDialog";
+import RecoveryCodesDialog from "@/components/RecoveryCodesDialog";
 import { Badge } from "@repo/ui/components/badge";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { Label } from "@repo/ui/components/label";
+import { Smartphone, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  getMfaDevices,
-  removeMfaDevice,
-  hasBackupCodes,
-} from "@/actions/security";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Trash, Smartphone } from "lucide-react";
-import BackupCodesDialog from "@/components/BackupCodesDialog";
 
 interface MfaDevice {
   id: string;
   name: string;
-  verified: boolean;
-  lastUsed: Date | null;
   createdAt: Date;
 }
 
-interface BackupCodesStatus {
-  hasBackupCodes: boolean;
-  mfaEnabled: boolean;
-  codesCount: number;
+interface RecoveryCodesStatus {
+  hasRecoveryCodes: boolean;
+  totalCodes: number;
+  hasEverGenerated: boolean;
 }
+
+type VerificationAction = "add-device" | "delete-device" | null;
 
 const Security = () => {
   const router = useRouter();
+  const [isMfaEnabled, setIsMfaEnabled] = useState(false);
   const [mfaDevices, setMfaDevices] = useState<MfaDevice[]>([]);
-  const [backupCodesStatus, setBackupCodesStatus] = useState<BackupCodesStatus>(
-    {
-      hasBackupCodes: false,
-      mfaEnabled: false,
-      codesCount: 0,
-    }
-  );
+  const [recoveryCodesStatus, setRecoveryCodesStatus] =
+    useState<RecoveryCodesStatus>({
+      hasRecoveryCodes: false,
+      totalCodes: 0,
+      hasEverGenerated: false,
+    });
   const [isLoading, setIsLoading] = useState(true);
-  const [removingDevice, setRemovingDevice] = useState<string | null>(null);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationAction, setVerificationAction] =
+    useState<VerificationAction>(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [isPending, startTransition] = useTransition();
 
-  const fetchMfaData = async () => {
+  const fetchMfaStatus = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const [devicesResponse, backupResponse] = await Promise.all([
-        getMfaDevices(),
-        hasBackupCodes(),
-      ]);
-
-      if (devicesResponse.success && devicesResponse.data) {
-        setMfaDevices(devicesResponse.data);
-      } else if (devicesResponse.error) {
-        toast.error(devicesResponse.error);
+      const response = await getMfaStatus();
+      if (response.success && response.data) {
+        setIsMfaEnabled(response.data.isMfaEnabled);
+        setMfaDevices(response.data.mfaDevices);
+      } else {
+        toast.error(
+          response.error || "Unable to retrieve user data. Please try again."
+        );
       }
-
-      if (backupResponse.success && backupResponse.data) {
-        setBackupCodesStatus(backupResponse.data);
-      }
-    } catch (error) {
-      toast.error("Error fetching MFA information");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRemoveDevice = async (deviceId: string, deviceName: string) => {
-    if (!confirm(`Are you sure you want to remove "${deviceName}"?`)) {
-      return;
-    }
-
+  const fetchRecoveryCodesStatus = async () => {
+    setIsLoading(true);
     try {
-      setRemovingDevice(deviceId);
-      const response = await removeMfaDevice(deviceId);
-
-      if (response.success) {
-        toast.success("Authenticator removed successfully");
-        await fetchMfaData(); // Refresh both devices and backup codes status
+      const response = await getRecoveryCodesStatus();
+      if (response.success && response.data) {
+        setRecoveryCodesStatus(response.data);
       } else {
-        toast.error(response.error || "Failed to remove authenticator");
+        toast.error(
+          response.error || "An unexpected error occurred. Please try again."
+        );
       }
-    } catch (error) {
-      toast.error("Something went wrong. Please try again.");
     } finally {
-      setRemovingDevice(null);
+      setIsLoading(false);
     }
   };
 
+  const fetchAllData = async () => {
+    await Promise.all([fetchMfaStatus(), fetchRecoveryCodesStatus()]);
+  };
+
   useEffect(() => {
-    fetchMfaData();
+    fetchAllData();
   }, []);
 
-  const isMfaEnabled = mfaDevices.length > 0;
+  const handleAddDeviceClick = () => {
+    // If user has no devices or more than 1 device, go directly to add-device page
+    if (mfaDevices.length === 0 || mfaDevices.length > 1) {
+      router.push("/security/mfa/add-device");
+    } else if (mfaDevices.length === 1) {
+      // If user has exactly 1 device, show verification dialog
+      setVerificationAction("add-device");
+      setShowVerificationDialog(true);
+    }
+  };
+
+  const handleDeleteDeviceClick = (deviceId: string) => {
+    if (mfaDevices.length > 1) {
+      // Multiple devices - delete directly without verification
+      handleDirectDelete(deviceId);
+    } else {
+      // Single device - require verification
+      setSelectedDeviceId(deviceId);
+      setVerificationAction("delete-device");
+      setShowVerificationDialog(true);
+    }
+  };
+
+  const handleDirectDelete = (deviceId: string) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("deviceId", deviceId);
+        const response = await deleteMfaDevice(formData);
+        if (response.success) {
+          toast.success(response.message || "MFA device deleted successfully");
+          fetchMfaStatus();
+        } else {
+          toast.error(
+            response.error || "Unable to process request. Please try again."
+          );
+        }
+      } catch (error) {
+        toast.error("An unexpected error occurred. Please try again later.");
+      }
+    });
+  };
+
+  const handleVerificationSuccess = () => {
+    if (verificationAction === "add-device") {
+      // Set session storage flag for add-device access
+      sessionStorage.setItem("mfa_verified_add_device", "true");
+      sessionStorage.setItem("mfa_verified_timestamp", Date.now().toString());
+
+      // Redirect to add-device page
+      router.push("/security/mfa/add-device");
+    } else if (verificationAction === "delete-device") {
+      // Delete the device immediately
+      handleDirectDelete(selectedDeviceId);
+    }
+
+    // Reset state
+    setVerificationAction(null);
+    setSelectedDeviceId("");
+    setShowVerificationDialog(false);
+  };
+
+  const getVerificationAction = () => {
+    return async (formData: FormData) => {
+      if (verificationAction === "delete-device") {
+        formData.append("deviceId", selectedDeviceId);
+      }
+      return verifyMfaForAction(formData, verificationAction!);
+    };
+  };
+
+  const firstDevice = mfaDevices.length > 0 ? mfaDevices[0] : null;
+  const firstDeviceName = firstDevice?.name || "Google Authenticator";
+  const firstDeviceDate = firstDevice?.createdAt;
+
+  const showRecoveryCodesButton =
+    isMfaEnabled || recoveryCodesStatus.hasEverGenerated;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-10">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-medium">Account security</h1>
-        <p className="text-muted-foreground text-sm text-balance">
+        <p className="text-muted-foreground text-base text-balance">
           Manage your account security below.
         </p>
       </div>
@@ -107,8 +179,8 @@ const Security = () => {
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2 w-full sm:max-w-md">
-          <div className="flex gap-4">
-            <Label className="text-base">Login with password</Label>
+          <div className="flex items-center gap-4">
+            <h4 className="text-base font-medium">Login with password</h4>
             <Badge className="bg-muted text-primary rounded-full">
               Enabled
             </Badge>
@@ -122,21 +194,17 @@ const Security = () => {
 
       <hr className="border-border h-px w-full border-x-0 border-b-0 border-t-[1px]" />
 
-      <div className="space-y-4">
+      <div className="grid gap-6">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-2 w-full sm:max-w-md">
-            <div className="flex gap-4 items-center">
-              <Label className="text-base">Multi-factor authentication</Label>
-              {isLoading ? (
+            <div className="flex items-center gap-4">
+              <h4 className="text-base font-medium">
+                Multi-factor authentication
+              </h4>
+              {isMfaEnabled && (
                 <Badge className="bg-muted text-primary rounded-full">
-                  Loading...
+                  Enabled
                 </Badge>
-              ) : (
-                isMfaEnabled && (
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded-full">
-                    Enabled
-                  </Badge>
-                )
               )}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -145,58 +213,45 @@ const Security = () => {
           </div>
           <CustomButton
             variant={ButtonVariant.OUTLINE}
+            text={isMfaEnabled ? "Add new device" : "Enable MFA"}
             size="sm"
-            text={isMfaEnabled ? "Add Device" : "Enable MFA"}
             className="rounded-full"
-            onClick={() => router.push("/security/mfa/add-device")}
+            onClick={handleAddDeviceClick}
+            disabled={isLoading}
           />
         </div>
-
-        {isMfaEnabled && (
+        {isMfaEnabled && mfaDevices.length > 0 && (
           <div className="space-y-3">
             {mfaDevices.map((device) => (
               <div
                 key={device.id}
-                className="flex items-center justify-between p-3 border border-border rounded-lg bg-card"
+                className="flex items-center justify-between p-3 border rounded-2xl bg-card"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-12 rounded-full bg-background border">
+                  <div className="flex items-center justify-center size-10 p-2 bg-background border rounded-full">
                     <Smartphone size={20} />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <Label>{device.name}</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {device.lastUsed
-                        ? `Last used ${new Date(
-                            device.lastUsed
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "2-digit",
-                            year: "numeric",
-                          })}`
-                        : `Added ${new Date(
-                            device.createdAt
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "2-digit",
-                            year: "numeric",
-                          })}`}
-                    </span>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-medium">{device.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {`Registered on ${device.createdAt.toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "2-digit",
+                          year: "numeric",
+                        }
+                      )}`}
+                    </p>
                   </div>
                 </div>
                 <CustomButton
-                  variant={ButtonVariant.GHOST}
+                  variant={ButtonVariant.DEFAULT}
                   size="icon"
-                  text=""
-                  className="text-destructive hover:text-destructive hover:rounded-full"
-                  onClick={() => handleRemoveDevice(device.id, device.name)}
-                  disabled={removingDevice === device.id}
-                  isLoading={removingDevice === device.id}
-                  icon={
-                    removingDevice === device.id ? undefined : (
-                      <Trash className="h-4 w-4" />
-                    )
-                  }
+                  icon={<Trash size={20} />}
+                  className="bg-transparent text-destructive hover:bg-muted hover:rounded-full"
+                  onClick={() => handleDeleteDeviceClick(device.id)}
+                  isLoading={isPending}
                 />
               </div>
             ))}
@@ -208,50 +263,35 @@ const Security = () => {
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2 w-full sm:max-w-md">
-          <div className="flex gap-4 items-center">
-            <Label className="text-base">Recovery codes</Label>
-            {backupCodesStatus.hasBackupCodes && (
-              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded-full">
+          <div className="flex items-center gap-4">
+            <h4 className="text-base font-medium">Recovery codes</h4>
+            {recoveryCodesStatus.hasRecoveryCodes && (
+              <Badge className="bg-muted text-primary rounded-full">
                 Enabled
               </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {isMfaEnabled
-              ? backupCodesStatus.hasBackupCodes
-                ? "You have backup codes generated. You can generate new ones if needed."
-                : "Generate backup codes to access your account if you lose your authenticator device."
-              : "You need to have at least one multi-factor method enabled to generate recovery codes."}
+            You can use one of your recovery codes to authenticate your account
+            in place of your other multi-factor methods.
           </p>
         </div>
-
-        {isMfaEnabled ? (
-          <BackupCodesDialog
-            isEnabled={isMfaEnabled}
-            hasExistingCodes={backupCodesStatus.hasBackupCodes}
-            onCodesGenerated={fetchMfaData}
-          >
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              size="sm"
-              text={
-                backupCodesStatus.hasBackupCodes
-                  ? "Regenerate"
-                  : "Generate Codes"
-              }
-              className="rounded-full"
-            />
-          </BackupCodesDialog>
-        ) : (
-          <CustomButton
-            variant={ButtonVariant.OUTLINE}
-            size="sm"
-            text="Enable MFA"
-            className="rounded-full"
-            disabled={true}
+        {showRecoveryCodesButton && (
+          <RecoveryCodesDialog
+            hasRecoveryCodes={recoveryCodesStatus.hasRecoveryCodes}
+            onCodesGenerated={fetchRecoveryCodesStatus}
           />
         )}
       </div>
+
+      <VerifyMfaDeviceDialog
+        open={showVerificationDialog}
+        onOpenChange={setShowVerificationDialog}
+        onVerificationSuccess={handleVerificationSuccess}
+        deviceName={firstDeviceName}
+        registeredOn={firstDeviceDate}
+        verificationAction={getVerificationAction()}
+      />
     </div>
   );
 };

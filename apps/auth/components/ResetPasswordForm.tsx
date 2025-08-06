@@ -13,7 +13,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { resetPassword, verifyOtp } from "@/actions/auth";
-import { otpSchema, personalInfoSchema } from "@/schemas/auth";
+import { otpSchema, resetPasswordSchema } from "@/schemas/auth";
 import { signIn } from "@repo/auth";
 
 const ResetPasswordForm = () => {
@@ -24,9 +24,6 @@ const ResetPasswordForm = () => {
   const [isPending, startTransition] = useTransition();
   const [currentStep, setCurrentStep] = useState<"otp" | "password">("otp");
 
-  // Extract just the password field from the schema
-  const passwordSchema = personalInfoSchema.pick({ password: true });
-
   // Form for OTP entry
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
@@ -34,8 +31,8 @@ const ResetPasswordForm = () => {
   });
 
   // Form for new password input
-  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
-    resolver: zodResolver(passwordSchema),
+  const passwordForm = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: "" },
   });
 
@@ -65,7 +62,7 @@ const ResetPasswordForm = () => {
           toast.error(response.error);
         }
       } catch (error) {
-        toast.error("Failed to verify OTP. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -74,7 +71,7 @@ const ResetPasswordForm = () => {
    * Submits the new password.
    * On success, redirects the user to the login page.
    */
-  const onPasswordSubmit = (values: z.infer<typeof passwordSchema>) => {
+  const onPasswordSubmit = (values: z.infer<typeof resetPasswordSchema>) => {
     startTransition(async () => {
       try {
         const formData = new FormData();
@@ -82,6 +79,7 @@ const ResetPasswordForm = () => {
         formData.append("password", values.password);
 
         const response = await resetPassword(formData);
+
         if (response.success) {
           toast.success(response.message);
           try {
@@ -121,7 +119,7 @@ const ResetPasswordForm = () => {
           );
         }
       } catch (error) {
-        toast.error("An error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -131,6 +129,7 @@ const ResetPasswordForm = () => {
    */
   const handleBackClick = () => {
     if (currentStep === "password") {
+      passwordForm.reset();
       setCurrentStep("otp");
     } else {
       router.push("/login");
@@ -139,6 +138,18 @@ const ResetPasswordForm = () => {
 
   // Step 1: OTP Verification Form
   if (currentStep === "otp") {
+    const OTP_LENGTH = 6;
+
+    // Handle OTP input change to auto-submit when complete
+    const handleOtpChange = (value: string) => {
+      if (value.length === OTP_LENGTH) {
+        // Set the OTP value in the form
+        otpForm.setValue("otp", value);
+        // Trigger form submission
+        otpForm.handleSubmit(onOtpSubmit)();
+      }
+    };
+
     return (
       <Form {...otpForm}>
         <form
@@ -148,9 +159,8 @@ const ResetPasswordForm = () => {
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-2xl font-bold">Verify Your Identity</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              If an account exists with&nbsp;
-              <span className="font-medium">{email}</span>, we have sent a
-              verification code. Please enter it below:
+              If an account exists with {email}, we have sent a verification
+              code. Please enter it below:
             </p>
           </div>
 
@@ -159,6 +169,7 @@ const ResetPasswordForm = () => {
               control={otpForm.control}
               fieldType={FormFieldType.OTP}
               name="otp"
+              onChange={handleOtpChange}
             />
           </div>
 
@@ -173,6 +184,7 @@ const ResetPasswordForm = () => {
               variant={ButtonVariant.OUTLINE}
               text="Back to Login"
               type="button"
+              disabled={isPending}
               onClick={handleBackClick}
             />
           </div>
@@ -190,9 +202,9 @@ const ResetPasswordForm = () => {
           className="grid gap-6"
         >
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Create a New Password</h1>
+            <h1 className="text-2xl font-bold">Reset Your Password</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              Enter a new password below to regain access to your account
+              Enter your new password below to complete the reset process
             </p>
           </div>
 
@@ -214,8 +226,9 @@ const ResetPasswordForm = () => {
             />
             <CustomButton
               variant={ButtonVariant.OUTLINE}
-              text="Go Back"
+              text="Go back"
               type="button"
+              disabled={isPending}
               onClick={handleBackClick}
             />
           </div>
@@ -224,7 +237,7 @@ const ResetPasswordForm = () => {
     );
   }
 
-  return null; // Fallback for unexpected state
+  return null;
 };
 
 export default ResetPasswordForm;

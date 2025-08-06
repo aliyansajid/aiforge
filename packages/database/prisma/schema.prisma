@@ -9,17 +9,14 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  firstName     String?
-  lastName      String?
-  email         String    @unique
+  id            String       @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String       @unique
   emailVerified DateTime?
   password      String?
   image         String?
-
-  mfaEnabled  Boolean  @default(false)
-  mfaSecret   String?
-  backupCodes String[]
+  isMfaEnabled  Boolean      @default(false)
 
   role   UserRole      @default(CONSUMER)
   status AccountStatus @default(ACTIVE)
@@ -27,6 +24,7 @@ model User {
   accounts   Account[]
   sessions   Session[]
   mfaDevices MfaDevice[]
+  recoveryCodes RecoveryCode[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -89,18 +87,30 @@ model VerificationToken {
 }
 
 model MfaDevice {
-  id       String    @id @default(cuid())
-  name     String
-  secret   String
-  userId   String
-  verified Boolean   @default(false)
-  lastUsed DateTime?
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  secret    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RecoveryCode {
+  id     String  @id @default(cuid())
+  userId String
+  code   String
+  isUsed Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, code])
   @@index([userId])
 }
 

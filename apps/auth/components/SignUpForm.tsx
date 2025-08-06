@@ -9,8 +9,8 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import GoogleAuthButton from "./GoogleAuthButton";
@@ -31,7 +31,6 @@ import { signIn } from "@repo/auth";
  */
 const SignUpForm = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // UI state and step tracking
   const [isPending, startTransition] = useTransition();
@@ -39,8 +38,6 @@ const SignUpForm = () => {
     "initial" | "email" | "otp" | "personal"
   >("initial");
   const [userEmail, setUserEmail] = useState("");
-
-  const showEmailForm = searchParams.get("email") === "true";
 
   // Form definitions with Zod validation
   const emailForm = useForm<z.infer<typeof emailSchema>>({
@@ -62,37 +59,18 @@ const SignUpForm = () => {
     },
   });
 
-  // If URL indicates email form should be shown, trigger transition
-  useEffect(() => {
-    if (showEmailForm && currentStep === "initial") {
-      setCurrentStep("email");
-    }
-  }, [showEmailForm, currentStep]);
-
-  // Trigger email form via URL update
-  const handleEmailClick = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("email", "true");
-    router.push(`?${params.toString()}`);
-    setCurrentStep("email");
-  };
-
   /**
    * Navigate back one step and reset the appropriate form.
-   * Also removes query parameters if going back from email step.
    */
   const handleBackClick = () => {
     if (currentStep === "email") {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("email");
-      router.push(`?${params.toString()}`);
-      emailForm.reset({ email: "" });
+      emailForm.reset();
       setCurrentStep("initial");
     } else if (currentStep === "otp") {
-      otpForm.reset({ otp: "" });
+      otpForm.reset();
       setCurrentStep("email");
     } else if (currentStep === "personal") {
-      personalForm.reset({ firstName: "", lastName: "", password: "" });
+      personalForm.reset();
       setCurrentStep("otp");
     }
   };
@@ -112,12 +90,11 @@ const SignUpForm = () => {
         if (response.success) {
           setUserEmail(values.email);
           setCurrentStep("otp");
-          router.replace("/sign-up", { scroll: false }); // Clean up query params
         } else {
           toast.error(response.error || "Failed to send OTP");
         }
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -141,7 +118,7 @@ const SignUpForm = () => {
           toast.error(response.error || "Invalid or expired OTP");
         }
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -187,7 +164,7 @@ const SignUpForm = () => {
                 console.warn("Failed to capture session info:", error);
               }
 
-              router.push("/");
+              router.push("/account");
             }
           } catch (error) {
             toast.error("Failed to log in. Please try logging in manually.");
@@ -197,7 +174,7 @@ const SignUpForm = () => {
           toast.error(response.error || "Failed to create account");
         }
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -205,10 +182,8 @@ const SignUpForm = () => {
   // Step 1: Choose sign-up method
   if (currentStep === "initial") {
     return (
-      <div>
-        <h1 className="text-2xl font-bold text-center mb-10">
-          Create your account
-        </h1>
+      <div className="grid gap-10">
+        <h1 className="text-2xl font-bold text-center">Create your account</h1>
         <div className="grid gap-4">
           <CustomButton
             variant={ButtonVariant.DEFAULT}
@@ -216,7 +191,7 @@ const SignUpForm = () => {
             icon={<Mail />}
             text="Continue with Email"
             className="rounded-full"
-            onClick={handleEmailClick}
+            onClick={() => setCurrentStep("email")}
           />
 
           <hr className="border-border w-full h-px border-b-0 border-x-0 border-t-[1px]" />
@@ -239,39 +214,41 @@ const SignUpForm = () => {
   if (currentStep === "email") {
     return (
       <Form {...emailForm}>
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)}>
-          <div className="grid gap-6">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-2xl font-bold">Create your account</h1>
-              <p className="text-muted-foreground text-sm text-balance">
-                Enter your email below to create your account
-              </p>
-            </div>
+        <form
+          onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+          className="grid gap-6"
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-bold">Create your account</h1>
+            <p className="text-muted-foreground text-sm text-balance">
+              Enter your email below to create your account
+            </p>
+          </div>
 
-            <CustomFormField
-              control={emailForm.control}
-              fieldType={FormFieldType.INPUT}
-              inputType="email"
-              name="email"
-              label="Email"
-              placeholder="m@example.com"
+          <CustomFormField
+            control={emailForm.control}
+            fieldType={FormFieldType.INPUT}
+            inputType="email"
+            name="email"
+            label="Email"
+            placeholder="m@example.com"
+          />
+
+          <div className="grid gap-2">
+            <CustomButton
+              variant={ButtonVariant.DEFAULT}
+              text="Continue"
+              type="submit"
+              isLoading={isPending}
             />
 
-            <div className="grid gap-2">
-              <CustomButton
-                variant={ButtonVariant.DEFAULT}
-                text="Continue"
-                type="submit"
-                isLoading={isPending}
-              />
-
-              <CustomButton
-                variant={ButtonVariant.OUTLINE}
-                text="Go Back"
-                type="button"
-                onClick={handleBackClick}
-              />
-            </div>
+            <CustomButton
+              variant={ButtonVariant.OUTLINE}
+              text="Go back"
+              type="button"
+              disabled={isPending}
+              onClick={handleBackClick}
+            />
           </div>
         </form>
       </Form>
@@ -280,40 +257,55 @@ const SignUpForm = () => {
 
   // Step 3: OTP Verification
   if (currentStep === "otp") {
+    const OTP_LENGTH = 6;
+
+    // Handle OTP input change to auto-submit when complete
+    const handleOtpChange = (value: string) => {
+      if (value.length === OTP_LENGTH) {
+        // Set the OTP value in the form
+        otpForm.setValue("otp", value);
+        // Trigger form submission
+        otpForm.handleSubmit(onOtpSubmit)();
+      }
+    };
+
     return (
-      <Form {...otpForm} key={`otp-form-${userEmail}`}>
-        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)}>
-          <div className="grid gap-6">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-2xl font-bold">Verify your email</h1>
-              <p className="text-muted-foreground text-sm text-balance">
-                We've emailed a one-time security code to {userEmail}. Please
-                enter it below:
-              </p>
-            </div>
+      <Form {...otpForm}>
+        <form
+          onSubmit={otpForm.handleSubmit(onOtpSubmit)}
+          className="grid gap-6"
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-bold">Verify your email</h1>
+            <p className="text-muted-foreground text-sm text-balance">
+              We've emailed a one-time security code to {userEmail}. Please
+              enter it below:
+            </p>
+          </div>
 
-            <div className="flex justify-center">
-              <CustomFormField
-                control={otpForm.control}
-                fieldType={FormFieldType.OTP}
-                name="otp"
-              />
-            </div>
+          <div className="flex justify-center">
+            <CustomFormField
+              control={otpForm.control}
+              fieldType={FormFieldType.OTP}
+              name="otp"
+              onChange={handleOtpChange}
+            />
+          </div>
 
-            <div className="grid gap-2">
-              <CustomButton
-                variant={ButtonVariant.DEFAULT}
-                text="Verify OTP"
-                type="submit"
-                isLoading={isPending}
-              />
-              <CustomButton
-                variant={ButtonVariant.OUTLINE}
-                text="Go Back"
-                type="button"
-                onClick={handleBackClick}
-              />
-            </div>
+          <div className="grid gap-2">
+            <CustomButton
+              variant={ButtonVariant.DEFAULT}
+              text="Verify OTP"
+              type="submit"
+              isLoading={isPending}
+            />
+            <CustomButton
+              variant={ButtonVariant.OUTLINE}
+              text="Go back"
+              type="button"
+              disabled={isPending}
+              onClick={handleBackClick}
+            />
           </div>
         </form>
       </Form>
@@ -323,62 +315,64 @@ const SignUpForm = () => {
   // Step 4: Personal Info Submission
   if (currentStep === "personal") {
     return (
-      <Form {...personalForm} key={`personal-form-${userEmail}`}>
-        <form onSubmit={personalForm.handleSubmit(onPersonalSubmit)}>
-          <div className="grid gap-6">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-2xl font-bold">Complete your profile</h1>
-              <p className="text-muted-foreground text-sm text-balance">
-                Enter your details to finish creating your account
-              </p>
-            </div>
+      <Form {...personalForm}>
+        <form
+          onSubmit={personalForm.handleSubmit(onPersonalSubmit)}
+          className="grid gap-6"
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-bold">Complete your profile</h1>
+            <p className="text-muted-foreground text-sm text-balance">
+              Enter your details to finish creating your account
+            </p>
+          </div>
 
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <CustomFormField
-                  control={personalForm.control}
-                  fieldType={FormFieldType.INPUT}
-                  inputType="text"
-                  name="firstName"
-                  label="First Name"
-                  placeholder="John"
-                />
-              </div>
-              <div className="flex-1">
-                <CustomFormField
-                  control={personalForm.control}
-                  fieldType={FormFieldType.INPUT}
-                  inputType="text"
-                  name="lastName"
-                  label="Last Name"
-                  placeholder="Doe"
-                />
-              </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <CustomFormField
+                control={personalForm.control}
+                fieldType={FormFieldType.INPUT}
+                inputType="text"
+                name="firstName"
+                label="First Name"
+                placeholder="John"
+              />
             </div>
+            <div className="flex-1">
+              <CustomFormField
+                control={personalForm.control}
+                fieldType={FormFieldType.INPUT}
+                inputType="text"
+                name="lastName"
+                label="Last Name"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
 
-            <CustomFormField
-              control={personalForm.control}
-              fieldType={FormFieldType.INPUT}
-              inputType="password"
-              name="password"
-              label="Password"
-              placeholder="********"
+          <CustomFormField
+            control={personalForm.control}
+            fieldType={FormFieldType.INPUT}
+            inputType="password"
+            name="password"
+            label="Password"
+            placeholder="********"
+          />
+
+          <div className="grid gap-2">
+            <CustomButton
+              variant={ButtonVariant.DEFAULT}
+              text="Sign up"
+              type="submit"
+              isLoading={isPending}
             />
-
-            <div className="grid gap-2">
-              <CustomButton
-                variant={ButtonVariant.DEFAULT}
-                text="Sign Up"
-                type="submit"
-                isLoading={isPending}
-              />
-              <CustomButton
-                variant={ButtonVariant.OUTLINE}
-                text="Go Back"
-                type="button"
-                onClick={handleBackClick}
-              />
-            </div>
+            <CustomButton
+              variant={ButtonVariant.OUTLINE}
+              text="Go back"
+              type="button"
+              disabled={isPending}
+              onClick={handleBackClick}
+            />
           </div>
         </form>
       </Form>

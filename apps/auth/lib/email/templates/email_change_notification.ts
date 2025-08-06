@@ -149,15 +149,20 @@ export const emailChangeNotificationTemplate = (data: {
                               </h1>
                               <p>Hi ${data.firstName},</p>
                               <p>
-                                This is to notify you that the email address associated with your AIForge account has been successfully changed.
+                                This is to notify you that the email address
+                                associated with your AIForge account has been
+                                successfully changed.
                               </p>
                               <p>
-                                  If you did not make this change, contact our support team immediately.
+                                If you did not make this change, contact our
+                                support team immediately.
                               </p>
                               <p>
-                                If you made this change, no further action is required. Your account is secure and all future communications will be sent to your new email address.
+                                If you made this change, no further action is
+                                required. Your account is secure and all future
+                                communications will be sent to your new email
+                                address.
                               </p>
-
                             </div>
                           </td>
                         </tr>
@@ -181,8 +186,10 @@ export const emailChangeNotificationTemplate = (data: {
                                 color: #333333;
                               "
                             >
-                                So long, and thanks for all the fish,<br />
-                                <span style="font-weight: 500">The AIForge Team</span>
+                              So long, and thanks for all the fish,<br />
+                              <span style="font-weight: 500"
+                                >The AIForge Team</span
+                              >
                             </div>
                           </td>
                         </tr>

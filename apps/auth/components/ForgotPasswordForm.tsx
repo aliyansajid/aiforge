@@ -9,7 +9,7 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { emailSchema } from "@/schemas/auth";
 import { sendPasswordResetOtp } from "@/actions/auth";
@@ -18,7 +18,6 @@ import { toast } from "sonner";
 const ForgotPasswordForm = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize the form with schema validation using Zod
   const form = useForm<z.infer<typeof emailSchema>>({
@@ -46,7 +45,7 @@ const ForgotPasswordForm = () => {
           toast.error(response.error || "Failed to send OTP");
         }
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -74,13 +73,14 @@ const ForgotPasswordForm = () => {
         <div className="grid gap-2">
           <CustomButton
             variant={ButtonVariant.DEFAULT}
-            text="Send Reset Link"
-            isLoading={isLoading}
+            text="Send OTP"
+            isLoading={isPending}
           />
           <CustomButton
             variant={ButtonVariant.OUTLINE}
             text="Back to Login"
             type="button"
+            disabled={isPending}
             onClick={() => router.push("/login")}
           />
         </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { generateMfaSecret, verifyAndSaveMfaDevice } from "@/actions/security";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import {
@@ -8,191 +7,218 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { Form } from "@repo/ui/components/form";
-import { startTransition, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import z from "zod";
+import { useEffect, useState, useTransition } from "react";
+import {
+  addMfaDevice,
+  generateMfaSetup,
+  getMfaStatus,
+} from "@/actions/security";
+import { toast } from "sonner";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { addMFADeviceSchema } from "@/schemas/auth";
 
 const AddDevice = () => {
   const router = useRouter();
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
-  const [secret, setSecret] = useState<string>("");
-  const [isGeneratingQR, setIsGeneratingQR] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
-  const formSchema = z.object({
-    otp: z
-      .string()
-      .length(6, "OTP must be 6 digits")
-      .regex(/^\d{6}$/, "OTP must contain only digits"),
-    name: z
-      .string()
-      .min(3, "Name must be at least 3 characters")
-      .max(50, "Name cannot exceed 50 characters"),
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof addMFADeviceSchema>>({
+    resolver: zodResolver(addMFADeviceSchema),
     defaultValues: {
       otp: "",
       name: "",
+      secret: "",
     },
   });
 
-  // Generate QR code only once on component mount
+  // Check if user should have access to this page
   useEffect(() => {
-    const setupMfa = async () => {
+    const checkAccess = async () => {
+      setIsCheckingAccess(true);
       try {
-        setIsGeneratingQR(true);
-        const result = await generateMfaSecret();
+        const response = await getMfaStatus();
+        if (response.success && response.data) {
+          const deviceCount = response.data.mfaDevices.length;
 
-        if (result.success && result.data) {
-          setSecret(result.data.secret);
-          setQrCodeUrl(result.data.qrCodeUrl);
-          toast.success(
-            "QR code generated! Scan it with your authenticator app."
-          );
-        } else {
-          toast.error(result.error || "Failed to generate QR code");
+          // If user has exactly 1 device, they need verification
+          if (deviceCount === 1) {
+            // Check session storage for verification flag
+            const isVerified = sessionStorage.getItem(
+              "mfa_verified_add_device"
+            );
+            const timestamp = sessionStorage.getItem("mfa_verified_timestamp");
+
+            if (!isVerified || !timestamp) {
+              toast.error("Please verify your existing device first");
+              router.push("/security");
+              return;
+            }
+
+            // Check if verification is still valid (30 minutes)
+            const verificationTime = parseInt(timestamp);
+            const now = Date.now();
+            const thirtyMinutes = 30 * 60 * 1000;
+
+            if (now - verificationTime > thirtyMinutes) {
+              sessionStorage.removeItem("mfa_verified_add_device");
+              sessionStorage.removeItem("mfa_verified_timestamp");
+              toast.error("Verification has expired. Please verify again.");
+              router.push("/security");
+              return;
+            }
+          }
+          // If user has 0 devices or >1 devices, allow direct access
         }
       } catch (error) {
-        console.error("Error generating QR code:", error);
-        toast.error("Failed to generate QR code");
+        toast.error("An unexpected error occurred. Please try again later.");
+        router.push("/security");
+        return;
       } finally {
-        setIsGeneratingQR(false);
+        setIsCheckingAccess(false);
       }
     };
 
-    setupMfa();
-  }, []); // Empty dependency array ensures this runs only once
+    checkAccess();
+  }, [router]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!secret) {
-      toast.error("QR code not ready. Please wait and try again.");
-      return;
-    }
+  useEffect(() => {
+    if (isCheckingAccess) return; // Don't fetch setup until access is verified
 
-    setIsSubmitting(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("otp", values.otp);
-      formData.append("name", values.name);
-      formData.append("secret", secret);
-
-      const result = await verifyAndSaveMfaDevice(formData);
-
-      if (result.success) {
-        toast.success("Authenticator added successfully!");
-        // Redirect back to security page after successful setup
-        setTimeout(() => {
+    const fetchMfaSetup = async () => {
+      setIsLoading(true);
+      try {
+        const response = await generateMfaSetup();
+        if (response.success && response.data) {
+          setQrCodeUrl(response.data.qrCodeUrl);
+          setSecret(response.data.secret);
+          form.setValue("secret", response.data.secret);
+        } else {
+          toast.error(
+            response.error ||
+              "An unexpected error occurred. Please try again later."
+          );
           router.push("/security");
-        }, 1500);
-      } else {
-        toast.error(result.error || "Failed to add authenticator");
-        // Clear the OTP field on error so user can try again
-        form.setValue("otp", "");
+        }
+      } catch (error) {
+        toast.error("An unexpected error occurred. Please try again later.");
+        router.push("/security");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      toast.error("Something went wrong. Please try again.");
-      form.setValue("otp", "");
-    } finally {
-      setIsSubmitting(false);
-    }
+    };
+    fetchMfaSetup();
+  }, [form, router, isCheckingAccess]);
+
+  const onSubmit = async (values: z.infer<typeof addMFADeviceSchema>) => {
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append("name", values.name);
+        formData.append("otp", values.otp);
+        formData.append("secret", secret);
+
+        const response = await addMfaDevice(formData);
+        if (response.success) {
+          // Clear verification flags after successful device addition
+          sessionStorage.removeItem("mfa_verified_add_device");
+          sessionStorage.removeItem("mfa_verified_timestamp");
+
+          toast.success(response.message);
+          router.push("/security");
+        } else {
+          toast.error(
+            response.error || "Failed to add MFA device. Please try again."
+          );
+        }
+      } catch (error) {
+        toast.error("An unexpected error occurred. Please try again later.");
+      }
+    });
   };
 
+  // Show loading while checking access
+  if (isCheckingAccess) {
+    return (
+      <div className="space-y-10">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="bg-card flex flex-col items-center justify-center p-12 gap-6 rounded-lg border">
+          <Skeleton className="w-52 h-52 rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-medium mb-2">Add Authenticator Device</h1>
-        <p className="text-muted-foreground text-sm">
+    <div className="space-y-10">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-medium">Add Authenticator Device</h1>
+        <p className="text-muted-foreground text-base text-balance">
           Set up two-factor authentication using an authenticator app.
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
           <div className="bg-card flex flex-col items-center justify-center p-12 gap-6 rounded-lg border">
-            {isGeneratingQR ? (
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-48 h-48 bg-gray-200 animate-pulse rounded"></div>
-                <p className="text-sm text-muted-foreground">
-                  Generating QR code...
-                </p>
-              </div>
-            ) : qrCodeUrl ? (
-              <>
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code for MFA setup"
-                  className="w-48 h-48 border rounded"
-                />
-                <div className="text-center">
-                  <p className="text-sm font-medium mb-1">
-                    Scan this QR code with your authenticator app
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Google Authenticator, Microsoft Authenticator, or any TOTP
-                    app
-                  </p>
-                </div>
-              </>
+            {isLoading ? (
+              <Skeleton className="w-52 h-52 rounded-lg" />
             ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-48 h-48 bg-red-100 rounded flex items-center justify-center">
-                  <p className="text-red-600 text-sm">Failed to load QR code</p>
-                </div>
-                <CustomButton
-                  variant={ButtonVariant.OUTLINE}
-                  text="Regenerate QR Code"
-                  onClick={() => window.location.reload()}
-                />
-              </div>
+              <img
+                src={qrCodeUrl}
+                alt="QR Code for MFA setup"
+                className="w-52 rounded-lg"
+              />
             )}
 
-            {!isGeneratingQR && qrCodeUrl && (
-              <div className="w-full max-w-sm">
-                <CustomFormField
-                  control={form.control}
-                  fieldType={FormFieldType.OTP}
-                  name="otp"
-                  label="Enter your 6-digit code"
-                  placeholder="123456"
-                />
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Scan this QR code with your authenticator app
+            </p>
+
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.OTP}
+              name="otp"
+              label="Enter your 6-digit code"
+            />
           </div>
 
-          {!isGeneratingQR && qrCodeUrl && (
-            <div className="mx-auto max-w-lg space-y-6">
-              <CustomFormField
-                control={form.control}
-                fieldType={FormFieldType.INPUT}
-                name="name"
-                label="Device Name"
-                placeholder="e.g., Google Authenticator, iPhone"
-              />
+          <div className="mx-auto max-w-lg space-y-6">
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.INPUT}
+              inputType="text"
+              name="name"
+              label="Name"
+              placeholder="Google Authenticator, iPhone"
+            />
 
-              <div className="flex gap-4">
-                <CustomButton
-                  variant={ButtonVariant.OUTLINE}
-                  text="Cancel"
-                  className="flex-1 rounded-full"
-                  onClick={() => router.back()}
-                  disabled={isSubmitting}
-                />
-                <CustomButton
-                  variant={ButtonVariant.DEFAULT}
-                  text={isSubmitting ? "Adding..." : "Add Authenticator"}
-                  type="submit"
-                  className="flex-1 rounded-full"
-                  disabled={isSubmitting || !secret}
-                />
-              </div>
+            <div className="flex gap-4">
+              <CustomButton
+                variant={ButtonVariant.OUTLINE}
+                text="Cancel"
+                type="button"
+                className="flex-1 rounded-full"
+                onClick={() => router.back()}
+                disabled={isPending}
+              />
+              <CustomButton
+                variant={ButtonVariant.DEFAULT}
+                text="Add Authenticator"
+                type="submit"
+                className="flex-1 rounded-full"
+                isLoading={isPending}
+              />
             </div>
-          )}
+          </div>
         </form>
       </Form>
     </div>

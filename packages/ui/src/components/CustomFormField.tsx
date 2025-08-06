@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Control } from "react-hook-form";
 import { Input } from "@repo/ui/components/input";
 import {
@@ -15,6 +16,8 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@repo/ui/components/input-otp";
+import { Button } from "@repo/ui/components/button";
+import { Eye, EyeOff } from "lucide-react";
 
 interface CustomProps {
   control: Control<any>;
@@ -23,6 +26,7 @@ interface CustomProps {
   name: string;
   label?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
 }
 
 enum FormFieldType {
@@ -35,22 +39,52 @@ enum FormFieldType {
 }
 
 const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
   switch (props.fieldType) {
     case FormFieldType.INPUT:
       return (
         <FormControl>
-          <Input
-            placeholder={props.placeholder}
-            type={props.inputType}
-            {...field}
-          />
+          <div className="relative">
+            <Input
+              {...field}
+              placeholder={props.placeholder}
+              type={
+                props.inputType === "password" && showPassword
+                  ? "text"
+                  : props.inputType
+              }
+            />
+            {props.inputType === "password" && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 hover:rounded-full"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} className="text-muted-foreground" />
+                ) : (
+                  <Eye size={16} className="text-muted-foreground" />
+                )}
+              </Button>
+            )}
+          </div>
         </FormControl>
       );
 
     case FormFieldType.OTP:
       return (
         <FormControl>
-          <InputOTP maxLength={6} {...field}>
+          <InputOTP
+            maxLength={6}
+            {...field}
+            onChange={(value) => {
+              field.onChange(value);
+              props.onChange?.(value);
+            }}
+          >
             <InputOTPGroup>
               <InputOTPSlot index={0} />
               <InputOTPSlot index={1} />

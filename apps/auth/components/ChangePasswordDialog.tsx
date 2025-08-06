@@ -21,25 +21,21 @@ import {
   CustomFormField,
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
+import { changePasswordSchema } from "@/schemas/auth";
 
 const ChangePasswordDialog = () => {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const formSchema = z.object({
-    oldPassword: z.string(),
-    newPassword: z.string(),
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof changePasswordSchema>>({
+    resolver: zodResolver(changePasswordSchema),
     defaultValues: {
       oldPassword: "",
       newPassword: "",
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: z.infer<typeof changePasswordSchema>) => {
     startTransition(async () => {
       try {
         const formData = new FormData();
@@ -49,14 +45,16 @@ const ChangePasswordDialog = () => {
         const response = await updatePassword(formData);
 
         if (response.success) {
-          setOpen(false);
           form.reset();
+          setOpen(false);
           toast.success(response.message);
         } else {
-          toast.error(response.error);
+          toast.error(
+            response.error || "Unable to update password. Please try again."
+          );
         }
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("An unexpected error occurred. Please try again later.");
       }
     });
   };
@@ -78,28 +76,23 @@ const ChangePasswordDialog = () => {
               <DialogTitle>Change Password</DialogTitle>
             </DialogHeader>
 
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <CustomFormField
-                  control={form.control}
-                  fieldType={FormFieldType.INPUT}
-                  inputType="password"
-                  name="oldPassword"
-                  label="Old password"
-                  placeholder="********"
-                />
-              </div>
-              <div className="flex-1">
-                <CustomFormField
-                  control={form.control}
-                  fieldType={FormFieldType.INPUT}
-                  inputType="password"
-                  name="newPassword"
-                  label="New password"
-                  placeholder="********"
-                />
-              </div>
-            </div>
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.INPUT}
+              inputType="password"
+              name="oldPassword"
+              label="Old password"
+              placeholder="********"
+            />
+
+            <CustomFormField
+              control={form.control}
+              fieldType={FormFieldType.INPUT}
+              inputType="password"
+              name="newPassword"
+              label="New password"
+              placeholder="********"
+            />
 
             <DialogFooter>
               <DialogClose asChild>

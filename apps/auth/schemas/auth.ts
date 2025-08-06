@@ -5,38 +5,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Separate schema just for MFA code input
-export const mfaCodeSchema = z.object({
-  mfaCode: z
-    .string()
-    .length(6, "MFA code must be 6 digits")
-    .regex(/^\d{6}$/, "MFA code must contain only digits"),
-});
-
-// Separate schema just for backup code input
-export const backupCodeInputSchema = z.object({
-  backupCode: z.string().min(1, "Backup code is required"),
-});
-
-// These are for server-side validation (keep existing)
-export const mfaVerificationSchema = z.object({
-  email: z.email(),
-  password: z.string(),
-  mfaCode: z
-    .string()
-    .length(6, "MFA code must be 6 digits")
-    .regex(/^\d{6}$/, "MFA code must contain only digits"),
-  isBackupCode: z.boolean().optional(),
-});
-
-export const backupCodeSchema = z.object({
-  email: z.email(),
-  password: z.string(),
-  backupCode: z.string().min(1, "Backup code is required"),
-});
-
 export const emailSchema = z.object({
-  email: z.email("Please enter a valid email address"),
+  email: z.email("Please enter a valid email"),
 });
 
 export const otpSchema = z.object({
@@ -65,4 +35,44 @@ export const personalInfoSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/,
       "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
     ),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/,
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+    ),
+});
+
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, "Old password is required"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/,
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+    ),
+});
+
+export const addMFADeviceSchema = z.object({
+  name: z
+    .string()
+    .min(3, "Name must be at least 3 characters")
+    .max(50, "Name cannot exceed 50 characters"),
+  otp: z.string().regex(/^\d{6}$/, "OTP must be a 6-digit number"),
+  secret: z.string().min(1, "Secret is required"),
+});
+
+export const verifyOtpSchema = z.object({
+  otp: z.string().regex(/^\d{6}$/, "OTP must be a 6-digit number"),
+});
+
+export const verifyRecoveryCodeSchema = z.object({
+  recoveryCode: z
+    .string()
+    .regex(/^\d{6}$/, "Recovery code must be a 6-digit number"),
 });

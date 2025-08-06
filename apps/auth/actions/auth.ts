@@ -6,7 +6,12 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from "@/lib/email/nodemailer";
-import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
+import {
+  emailSchema,
+  otpSchema,
+  personalInfoSchema,
+  resetPasswordSchema,
+} from "@/schemas/auth";
 
 /**
  * Generates a 6-character alphanumeric OTP using uppercase letters and digits.
@@ -56,8 +61,6 @@ export async function sendOtp(formData: FormData) {
   const { email } = validationResult.data;
 
   try {
-    await prisma.$connect();
-
     // Ensure this email isn't already registered
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -94,7 +97,7 @@ export async function sendOtp(formData: FormData) {
       });
 
       return {
-        error: "Failed to send OTP email. Please try again later.",
+        error: "Failed to send OTP. Please try again.",
         success: false,
       };
     }
@@ -106,11 +109,9 @@ export async function sendOtp(formData: FormData) {
   } catch (error) {
     console.error("Send OTP error:", error);
     return {
-      error: "Failed to send OTP. Please try again later.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -149,8 +150,6 @@ export async function verifyOtp(formData: FormData) {
   }
 
   try {
-    await prisma.$connect();
-
     // Check for a valid token
     const token = await prisma.verificationToken.findFirst({
       where: {
@@ -179,11 +178,9 @@ export async function verifyOtp(formData: FormData) {
   } catch (error) {
     console.error("Verify OTP error:", error);
     return {
-      error: "Failed to verify OTP. Please try again later.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -249,8 +246,6 @@ export async function registerUser(formData: FormData) {
   const { firstName, lastName, password } = personalValidation.data;
 
   try {
-    await prisma.$connect();
-
     // Final safeguard against duplicate registration
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -285,11 +280,9 @@ export async function registerUser(formData: FormData) {
   } catch (error) {
     console.error("Registration error:", error);
     return {
-      error: "Something went wrong. Please try again later.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -322,8 +315,6 @@ export async function sendPasswordResetOtp(formData: FormData) {
   const { email } = validationResult.data;
 
   try {
-    await prisma.$connect();
-
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -350,7 +341,7 @@ export async function sendPasswordResetOtp(formData: FormData) {
         });
 
         return {
-          error: "Failed to send OTP email. Please try again later.",
+          error: "Failed to send OTP. Please try again.",
           success: false,
         };
       }
@@ -365,11 +356,9 @@ export async function sendPasswordResetOtp(formData: FormData) {
   } catch (error) {
     console.error("Send OTP error:", error);
     return {
-      error: "Failed to send OTP. Please try again later.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -386,7 +375,10 @@ export async function resetPassword(formData: FormData) {
 
   if (!rawData.email || !rawData.password) {
     console.error("Reset password error: Email or password is missing");
-    return { error: "Email and password are required", success: false };
+    return {
+      error: "Email and password are required",
+      success: false,
+    };
   }
 
   const emailValidation = emailSchema.safeParse({ email: rawData.email });
@@ -401,11 +393,9 @@ export async function resetPassword(formData: FormData) {
     };
   }
 
-  const passwordValidation = personalInfoSchema
-    .pick({ password: true })
-    .safeParse({
-      password: rawData.password,
-    });
+  const passwordValidation = resetPasswordSchema.safeParse({
+    password: rawData.password,
+  });
   if (!passwordValidation.success) {
     console.error(
       "Reset password validation error:",
@@ -421,9 +411,12 @@ export async function resetPassword(formData: FormData) {
   const { password } = passwordValidation.data;
 
   try {
-    await prisma.$connect();
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
 
-    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return { error: "No account found with this email", success: false };
     }
@@ -439,10 +432,8 @@ export async function resetPassword(formData: FormData) {
   } catch (error) {
     console.error("Reset password error:", error);
     return {
-      error: "Failed to update password. Please try again later.",
+      error: "An unexpected error occurred. Please try again later.",
       success: false,
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }

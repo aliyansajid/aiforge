@@ -161,10 +161,16 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                                 into your AIForge account from a new IP address:
                               </p>
                               <p>
-                                <span style="font-weight: 500;">Time:</span> ${data.loginTime}<br />
-                                <span style="font-weight: 500;">IP address:</span> ${data.ipAddress}<br />
-                                <span style="font-weight: 500;">Location:</span> ${data.location}<br />
-                                <span style="font-weight: 500;">Browser:</span> ${data.browser}
+                                <span style="font-weight: 500">Time:</span>
+                                ${data.loginTime}<br />
+                                <span style="font-weight: 500"
+                                  >IP address:</span
+                                >
+                                ${data.ipAddress}<br />
+                                <span style="font-weight: 500">Location:</span>
+                                ${data.location}<br />
+                                <span style="font-weight: 500">Browser:</span>
+                                ${data.browser}
                               </p>
                               <p>
                                 If this was you, you can ignore this alert. If
@@ -202,7 +208,8 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                           >
                             <div
                               style="
-                                font-family: -apple-system, system-ui, BlinkMacSystemFont;
+                                font-family: -apple-system, system-ui,
+                                  BlinkMacSystemFont;
                                 font-size: 15px;
                                 font-weight: 300;
                                 line-height: 24px;
@@ -211,7 +218,9 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                               "
                             >
                               So long, and thanks for all the fish,<br />
-                              <span style="font-weight: 500">The AIForge Team</span>
+                              <span style="font-weight: 500"
+                                >The AIForge Team</span
+                              >
                             </div>
                           </td>
                         </tr>
@@ -281,7 +290,8 @@ export const newLoginEmailTemplate = (data: NewLoginEmailData) => `
                               <a
                                 href="mailto:support@aiforge.host"
                                 style="color: #888888"
-                                >support@aiforge.host</a>
+                                >support@aiforge.host</a
+                              >
                             </div>
                           </td>
                         </tr>

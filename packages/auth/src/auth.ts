@@ -29,7 +29,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Credentials({
       // Custom login handler using email/password
-      // Note: MFA verification is now handled in the login form BEFORE calling signIn
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required");
@@ -38,16 +37,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Look up user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            image: true,
-            password: true,
-            status: true,
-            mfaEnabled: true,
-          },
         });
 
         if (!user) {
@@ -71,26 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("Invalid credentials.");
         }
 
-        // Check account status
-        if (user.status !== "ACTIVE") {
-          throw new Error("Account is not active.");
-        }
-
-        // Important: At this point, if MFA is enabled, it should have been
-        // verified in the login form before calling signIn()
-        // We don't check MFA here because NextAuth doesn't support async flows
-
-        return {
-          id: user.id,
-          email: user.email,
-          name:
-            user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
-              : user.firstName || user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          image: user.image,
-        };
+        return user; // Successful login returns the user object
       },
     }),
   ],
@@ -130,19 +100,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.createdAt = user.createdAt;
       }
       return session;
-    },
-
-    async signIn({ user, account }) {
-      // Allow social logins without additional checks
-      if (account?.provider !== "credentials") {
-        return true;
-      }
-
-      // For credentials login, we trust that MFA was verified in the login form
-      // before signIn() was called. Additional verification could be added here
-      // if needed, but it would require session storage or other state management.
-
-      return true;
     },
   },
 
