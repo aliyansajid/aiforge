@@ -15,7 +15,7 @@ import {
   addMfaDevice,
   generateMfaSetup,
   getMfaStatus,
-} from "@/actions/security";
+} from "@/actions/security-actions";
 import { toast } from "sonner";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { addMFADeviceSchema } from "@/schemas/auth";

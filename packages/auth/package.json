@@ -2,9 +2,8 @@
   "name": "@repo/auth",
   "version": "0.0.0",
   "dependencies": {
-    "@repo/db": "*",
     "@auth/prisma-adapter": "^2.10.0",
-    "bcryptjs": "^3.0.2",
+    "@repo/db": "*",
     "next-auth": "^5.0.0-beta.29",
     "uuid": "^11.1.0"
   },

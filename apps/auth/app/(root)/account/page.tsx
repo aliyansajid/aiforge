@@ -7,7 +7,10 @@ import EditNameDialog from "@/components/EditNameDialog";
 import EditEmailDialog from "@/components/EditEmailDialog";
 import OAuthButton from "@/components/OauthButton";
 import PasswordSetupDialog from "@/components/PasswordSetupDialog";
-import { disableCredentials, getUserAccountStatus } from "@/actions/account";
+import {
+  disableCredentials,
+  getUserAccountStatus,
+} from "@/actions/account-actions";
 
 const Account = async () => {
   const session = await auth();

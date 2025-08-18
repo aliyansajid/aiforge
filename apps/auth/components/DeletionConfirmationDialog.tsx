@@ -22,7 +22,7 @@ import {
 } from "@repo/ui/components/CustomFormField";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { signOut, useSession } from "@repo/auth";
-import { deleteAccount } from "@/actions/data";
+import { deleteAccount } from "@/actions/account-deletion-actions";
 
 const DeletionConfirmationDialog = () => {
   const { data: session } = useSession();

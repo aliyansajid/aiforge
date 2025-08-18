@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@repo/ui/components/form";
-import { updatePassword } from "@/actions/security";
+import { updatePassword } from "@/actions/security-actions";
 import { toast } from "sonner";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import {

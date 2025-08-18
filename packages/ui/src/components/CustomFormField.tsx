@@ -26,7 +26,9 @@ interface CustomProps {
   name: string;
   label?: string;
   placeholder?: string;
+  className?: string;
   onChange?: (value: string) => void;
+  accept?: string;
 }
 
 enum FormFieldType {
@@ -43,6 +45,22 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
 
   switch (props.fieldType) {
     case FormFieldType.INPUT:
+      if (props.inputType === "file") {
+        return (
+          <FormControl>
+            <Input
+              type="file"
+              accept={props.accept}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                field.onChange(file);
+              }}
+            />
+          </FormControl>
+        );
+      }
+
+      // Handle regular inputs
       return (
         <FormControl>
           <div className="relative">
@@ -78,8 +96,8 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
       return (
         <FormControl>
           <InputOTP
-            maxLength={6}
             {...field}
+            maxLength={6}
             onChange={(value) => {
               field.onChange(value);
               props.onChange?.(value);

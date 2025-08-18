@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { DropdownMenu } from "@radix-ui/react-dropdown-menu";
-import { deleteSession } from "@/actions/session";
+import { deleteSession } from "@/actions/session-actions";
 import { toast } from "sonner";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";

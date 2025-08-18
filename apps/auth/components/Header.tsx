@@ -59,7 +59,7 @@ const Header = () => {
 
   return (
     <header className="bg-background flex items-center justify-between sticky z-50 top-0 px-4 py-3">
-      <Image src={"/logo.svg"} alt="logo" height={"50"} width={"50"} />
+      <Image src={"/logo-white.png"} alt="logo" height={"70"} width={"70"} />
       <div className="flex items-center gap-2">
         <Button
           variant={"outline"}

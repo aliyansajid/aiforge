@@ -24,7 +24,10 @@ import {
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import { emailSchema, otpSchema } from "@/schemas/auth";
-import { sendEmailChangeOtp, verifyEmailChangeOtp } from "@/actions/account";
+import {
+  sendEmailChangeOtp,
+  verifyEmailChangeOtp,
+} from "@/actions/account-actions";
 
 const EditEmailDialog = ({ email }: { email: string | null | undefined }) => {
   const router = useRouter();

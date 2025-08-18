@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { signIn } from "@repo/auth";
-import { disconnectOAuthProvider } from "@/actions/account";
+import { disconnectOAuthProvider } from "@/actions/account-actions";
 import { toast } from "sonner";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 

@@ -22,7 +22,7 @@ import {
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import { personalInfoSchema } from "@/schemas/auth";
-import { setupPassword } from "@/actions/account";
+import { setupPassword } from "@/actions/account-actions";
 
 const formSchema = personalInfoSchema.pick({ password: true });
 
