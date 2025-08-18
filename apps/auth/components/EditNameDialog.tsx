@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@repo/ui/components/form";
 import { personalInfoSchema } from "@/schemas/auth";
-import { updateName } from "@/actions/account";
+import { updateName } from "@/actions/account-actions";
 import { toast } from "sonner";
 import { useSession } from "@repo/auth";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";

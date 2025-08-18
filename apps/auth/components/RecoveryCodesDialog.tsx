@@ -4,7 +4,7 @@ import {
   generateRecoveryCodes,
   getMfaStatus,
   verifyMfaForAction,
-} from "@/actions/security";
+} from "@/actions/security-actions";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import {
   Dialog,

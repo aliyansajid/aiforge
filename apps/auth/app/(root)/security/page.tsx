@@ -5,7 +5,7 @@ import {
   getRecoveryCodesStatus,
   verifyMfaForAction,
   deleteMfaDevice,
-} from "@/actions/security";
+} from "@/actions/security-actions";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 import VerifyMfaDeviceDialog from "@/components/VerifyMfaDeviceDialog";
 import RecoveryCodesDialog from "@/components/RecoveryCodesDialog";

@@ -1,4 +1,7 @@
-import { getCurrentSession, getActiveSessions } from "@/actions/session";
+import {
+  getCurrentSession,
+  getActiveSessions,
+} from "@/actions/session-actions";
 import SessionsClient from "@/components/SessionClient";
 
 const Sessions = async () => {

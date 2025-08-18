@@ -63,12 +63,17 @@ model Session {
   ipAddress String?
   userAgent String?
 
-  country  String?
-  region   String?
-  city     String?
-  lat      Float?
-  lon      Float?
-  timezone String?
+  country       String?
+  countryCode   String?
+  continent     String?
+  continentCode String?
+  region        String?
+  regionCode    String?
+  city          String?
+  latitude      Float?
+  longitude     Float?
+  postalCode    String?
+  timezone      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,10 +95,11 @@ model VerificationToken {
 }
 
 model MfaDevice {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  secret    String
+  id     String @id @default(cuid())
+  userId String
+  name   String
+  secret String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

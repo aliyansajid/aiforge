@@ -78,8 +78,8 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
       return (
         <FormControl>
           <InputOTP
-            maxLength={6}
             {...field}
+            maxLength={6}
             onChange={(value) => {
               field.onChange(value);
               props.onChange?.(value);

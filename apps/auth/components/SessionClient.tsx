@@ -6,7 +6,7 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import { DataTable } from "./data-table/datatable";
 import { columns, SessionTableData } from "./data-table/columns";
-import { signOutAllSessions } from "@/actions/session";
+import { signOutAllSessions } from "@/actions/session-actions";
 import { toast } from "sonner";
 import { signOut } from "@repo/auth";
 

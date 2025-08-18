@@ -40,7 +40,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!user) {
-          throw new Error("Invalid credentials.");
+          throw new Error("Invalid credentials");
         }
 
         if (!user.password) {
@@ -57,7 +57,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
 
         if (!isPasswordValid) {
-          throw new Error("Invalid credentials.");
+          throw new Error("Invalid credentials");
         }
 
         return user; // Successful login returns the user object
@@ -93,12 +93,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // Add custom data to the session object
     async session({ session, user }) {
-      if (user?.firstName) {
-        session.user.name = `${user.firstName} ${user.lastName}`.trim();
-        session.user.firstName = user.firstName;
-        session.user.lastName = user.lastName;
-        session.user.createdAt = user.createdAt;
-      }
+      session.user.name = `${user.firstName} ${user.lastName}`.trim();
+      session.user.firstName = user.firstName;
+      session.user.lastName = user.lastName;
+      session.user.createdAt = user.createdAt;
+
       return session;
     },
   },
