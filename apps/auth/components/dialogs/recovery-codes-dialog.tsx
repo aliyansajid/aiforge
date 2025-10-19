@@ -5,7 +5,7 @@ import {
   getMfaStatus,
   verifyMfaForAction,
 } from "@/actions/security-actions";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import {
   Dialog,
   DialogContent,

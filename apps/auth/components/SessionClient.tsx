@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import { DataTable } from "./data-table/datatable";
 import { columns, SessionTableData } from "./data-table/columns";
 import { signOutAllSessions } from "@/actions/session-actions";
@@ -30,8 +30,8 @@ interface SessionData {
   country: string | null;
   timezone: string | null;
   ipAddress: string | null;
-  lat: number | null;
-  lon: number | null;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: Date;
   expires: Date;
 }
@@ -54,8 +54,8 @@ const SessionsClient = ({ session, activeSessions }: SessionsClientProps) => {
   const defaultLon = 73.0479;
 
   // Use session coordinates if available, otherwise use defaults
-  const lat = session?.lat ?? defaultLat;
-  const lon = session?.lon ?? defaultLon;
+  const lat = session?.latitude ?? defaultLat;
+  const lon = session?.longitude ?? defaultLon;
 
   // Transform active sessions data for the table
   const tableData: SessionTableData[] = activeSessions.map((session) => {

@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
+} from "@repo/ui/components/custom-form-field";
 import { Form } from "@repo/ui/components/form";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";

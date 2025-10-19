@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@repo/ui/components/form";
 import { updatePassword } from "@/actions/security-actions";
 import { toast } from "sonner";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import {
   Dialog,
   DialogClose,
@@ -20,7 +20,7 @@ import {
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
+} from "@repo/ui/components/custom-form-field";
 import { changePasswordSchema } from "@/schemas/auth";
 
 const ChangePasswordDialog = () => {
