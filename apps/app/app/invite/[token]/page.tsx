@@ -13,21 +13,24 @@ import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 interface InvitePageProps {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 const InvitePage = async ({ params }: InvitePageProps) => {
   const session = await auth();
 
+  // ✅ Await params
+  const { token } = await params;
+
   // Redirect to login if not authenticated
   if (!session?.user?.id) {
-    redirect(`/login?callbackUrl=/invite/${params.token}`);
+    redirect(`/login?callbackUrl=/invite/${token}`);
   }
 
   // Auto-accept the invitation
-  const result = await acceptInvitation(params.token);
+  const result = await acceptInvitation(token);
 
   if (result.success && result.data?.teamSlug) {
     // Redirect to team page

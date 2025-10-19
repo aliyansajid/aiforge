@@ -15,7 +15,7 @@ export default async function TeamLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const session = await auth();
 
@@ -23,11 +23,14 @@ export default async function TeamLayout({
     redirect("/login");
   }
 
+  // ✅ Await params
+  const { slug } = await params;
+
   const result = await getUserTeams();
   const teams = result.success ? result.data : [];
 
   // Check if user has access to this team
-  const hasAccess = teams.some((team: any) => team.slug === params.slug);
+  const hasAccess = teams.some((team: any) => team.slug === slug);
 
   if (!hasAccess) {
     redirect("/");

@@ -7,14 +7,17 @@ import { getTeamBySlug } from "@/actions/team-settings-actions";
 import { redirect } from "next/navigation";
 
 interface MembersPageProps {
-  params: {
+  params: Promise<{
+    // ✅ Changed to Promise
     slug: string;
-  };
+  }>;
 }
 
 const MembersPage = async ({ params }: MembersPageProps) => {
+  const { slug } = await params;
+
   // Fetch team to get ID and verify access
-  const teamResult = await getTeamBySlug(params.slug);
+  const teamResult = await getTeamBySlug(slug);
 
   if (!teamResult.success || !teamResult.data) {
     redirect("/");
@@ -40,6 +43,7 @@ const MembersPage = async ({ params }: MembersPageProps) => {
   const invitations = invitationsResult.success
     ? invitationsResult.data || []
     : [];
+
   return (
     <TeamMembers
       members={members}
