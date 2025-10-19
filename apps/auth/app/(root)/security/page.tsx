@@ -6,11 +6,11 @@ import {
   verifyMfaForAction,
   deleteMfaDevice,
 } from "@/actions/security-actions";
-import ChangePasswordDialog from "@/components/ChangePasswordDialog";
-import VerifyMfaDeviceDialog from "@/components/VerifyMfaDeviceDialog";
-import RecoveryCodesDialog from "@/components/RecoveryCodesDialog";
+import ChangePasswordDialog from "@/components/dialogs/change-password-dialog";
+import VerifyMfaDeviceDialog from "@/components/dialogs/verify-mfa-device-dialog";
+import RecoveryCodesDialog from "@/components/dialogs/recovery-codes-dialog";
 import { Badge } from "@repo/ui/components/badge";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import { Smartphone, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";

@@ -3,10 +3,10 @@ import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { auth } from "@repo/auth";
 import { Mail } from "lucide-react";
-import EditNameDialog from "@/components/EditNameDialog";
-import EditEmailDialog from "@/components/EditEmailDialog";
+import EditNameDialog from "@/components/dialogs/edit-name-dialog";
+import EditEmailDialog from "@/components/dialogs/edit-email-dialog";
 import OAuthButton from "@/components/OauthButton";
-import PasswordSetupDialog from "@/components/PasswordSetupDialog";
+import PasswordSetupDialog from "@/components/dialogs/password-setup-dialog";
 import {
   disableCredentials,
   getUserAccountStatus,

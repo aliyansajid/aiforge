@@ -104,7 +104,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // Add custom data to the session object
     async session({ session, user }) {
-      // ✅ Type assertion to access custom fields
+      // Type assertion to access custom fields
       const dbUser = user as typeof user & {
         firstName: string;
         lastName: string;

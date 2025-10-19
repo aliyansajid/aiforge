@@ -7,14 +7,15 @@ import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+} from "@repo/ui/components/custom-form-field";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { resetPassword, verifyOtp } from "@/actions/auth";
+import { resetPassword, verifyOtp } from "@/actions/auth-actions";
 import { otpSchema, resetPasswordSchema } from "@/schemas/auth";
 import { signIn } from "@repo/auth";
+import { Button } from "@repo/ui/components/button";
+import { Spinner } from "@repo/ui/components/spinner";
 
 const ResetPasswordForm = () => {
   const router = useRouter();
@@ -156,7 +157,7 @@ const ResetPasswordForm = () => {
           onSubmit={otpForm.handleSubmit(onOtpSubmit)}
           className="grid gap-6"
         >
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Verify Your Identity</h1>
             <p className="text-muted-foreground text-sm text-balance">
               If an account exists with {email}, we have sent a verification
@@ -174,19 +175,18 @@ const ResetPasswordForm = () => {
           </div>
 
           <div className="grid gap-2">
-            <CustomButton
-              variant={ButtonVariant.DEFAULT}
-              text="Verify OTP"
-              type="submit"
-              isLoading={isPending}
-            />
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              text="Back to Login"
+            <Button disabled={isPending}>
+              {isPending ? <Spinner /> : "Verify"}
+            </Button>
+
+            <Button
+              variant="outline"
               type="button"
               disabled={isPending}
               onClick={handleBackClick}
-            />
+            >
+              Go back
+            </Button>
           </div>
         </form>
       </Form>
@@ -201,7 +201,7 @@ const ResetPasswordForm = () => {
           onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
           className="grid gap-6"
         >
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Reset Your Password</h1>
             <p className="text-muted-foreground text-sm text-balance">
               Enter your new password below to complete the reset process
@@ -218,19 +218,18 @@ const ResetPasswordForm = () => {
           />
 
           <div className="grid gap-2">
-            <CustomButton
-              variant={ButtonVariant.DEFAULT}
-              text="Update Password"
-              type="submit"
-              isLoading={isPending}
-            />
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              text="Go back"
+            <Button disabled={isPending}>
+              {isPending ? <Spinner /> : "Update Password"}
+            </Button>
+
+            <Button
+              variant="outline"
               type="button"
               disabled={isPending}
               onClick={handleBackClick}
-            />
+            >
+              Go back
+            </Button>
           </div>
         </form>
       </Form>

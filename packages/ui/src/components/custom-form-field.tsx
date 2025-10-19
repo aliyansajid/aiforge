@@ -91,9 +91,9 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff size={16} className="text-muted-foreground" />
+                  <EyeOff className="text-muted-foreground" />
                 ) : (
-                  <Eye size={16} className="text-muted-foreground" />
+                  <Eye className="text-muted-foreground" />
                 )}
               </Button>
             )}

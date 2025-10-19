@@ -32,6 +32,7 @@ function generateOtp() {
 /**
  * Handles OTP generation and sending for new user email verification.
  * - Validates input
+ * - Applies rate limiting (5 requests per hour per email)
  * - Prevents duplicate user registration
  * - Generates and stores a temporary OTP
  * - Sends OTP via email
@@ -61,6 +62,22 @@ export async function sendOtp(formData: FormData) {
   const { email } = validationResult.data;
 
   try {
+    // Rate limiting: Check OTP requests in the last hour
+    const recentTokens = await prisma.verificationToken.count({
+      where: {
+        email,
+        expires: { gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last 1 hour
+      },
+    });
+
+    if (recentTokens >= 5) {
+      console.warn(`Rate limit exceeded for email: ${email}`);
+      return {
+        error: "Too many OTP requests. Please try again in an hour.",
+        success: false,
+      };
+    }
+
     // Ensure this email isn't already registered
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -104,6 +121,100 @@ export async function sendOtp(formData: FormData) {
 
     return {
       message: "OTP sent to your email",
+      success: true,
+    };
+  } catch (error) {
+    console.error("Send OTP error:", error);
+    return {
+      error: "An unexpected error occurred. Please try again later.",
+      success: false,
+    };
+  }
+}
+
+/**
+ * Sends a password reset OTP to the user’s email if the account exists.
+ * - Validates input
+ * - Applies rate limiting (5 requests per hour per email)
+ * - Always returns a generic success message to prevent email enumeration
+ */
+export async function sendPasswordResetOtp(formData: FormData) {
+  const rawData = {
+    email: formData.get("email") as string,
+  };
+
+  if (!rawData.email) {
+    console.error("Send OTP error: Email is missing or null");
+    return {
+      error: "Email is required",
+      success: false,
+    };
+  }
+
+  const validationResult = emailSchema.safeParse(rawData);
+  if (!validationResult.success) {
+    console.error("Send OTP validation error:", validationResult.error.issues);
+    return {
+      error: validationResult.error.issues[0]?.message || "Invalid email",
+      success: false,
+    };
+  }
+
+  const { email } = validationResult.data;
+
+  try {
+    // Rate limiting: Check OTP requests in the last hour
+    const recentTokens = await prisma.verificationToken.count({
+      where: {
+        email,
+        expires: { gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last 1 hour
+      },
+    });
+
+    if (recentTokens >= 5) {
+      console.warn(`Rate limit exceeded for email: ${email}`);
+      return {
+        error: "Too many OTP requests. Please try again in an hour.",
+        success: false,
+      };
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      // Generate OTP and save to DB
+      const otp = generateOtp();
+      const otpWithDash = `${otp.slice(0, 3)}-${otp.slice(3)}`;
+      const expires = new Date(Date.now() + 15 * 60 * 1000);
+
+      await prisma.verificationToken.create({
+        data: {
+          email,
+          token: otp,
+          expires,
+        },
+      });
+
+      const emailResult = await sendPasswordResetEmail(email, otpWithDash);
+
+      if (!emailResult.success) {
+        await prisma.verificationToken.deleteMany({
+          where: { email, token: otp },
+        });
+
+        return {
+          error: "Failed to send OTP. Please try again.",
+          success: false,
+        };
+      }
+    }
+
+    // Prevents leaking whether an account exists or not
+    return {
+      message:
+        "If an account exists with this email, you will receive reset instructions",
       success: true,
     };
   } catch (error) {
@@ -279,82 +390,6 @@ export async function registerUser(formData: FormData) {
     };
   } catch (error) {
     console.error("Registration error:", error);
-    return {
-      error: "An unexpected error occurred. Please try again later.",
-      success: false,
-    };
-  }
-}
-
-/**
- * Sends a password reset OTP to the user’s email if the account exists.
- * - Always returns a generic success message to prevent email enumeration
- */
-export async function sendPasswordResetOtp(formData: FormData) {
-  const rawData = {
-    email: formData.get("email") as string,
-  };
-
-  if (!rawData.email) {
-    console.error("Send OTP error: Email is missing or null");
-    return {
-      error: "Email is required",
-      success: false,
-    };
-  }
-
-  const validationResult = emailSchema.safeParse(rawData);
-  if (!validationResult.success) {
-    console.error("Send OTP validation error:", validationResult.error.issues);
-    return {
-      error: validationResult.error.issues[0]?.message || "Invalid email",
-      success: false,
-    };
-  }
-
-  const { email } = validationResult.data;
-
-  try {
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      // Generate OTP and save to DB
-      const otp = generateOtp();
-      const otpWithDash = `${otp.slice(0, 3)}-${otp.slice(3)}`;
-      const expires = new Date(Date.now() + 15 * 60 * 1000);
-
-      await prisma.verificationToken.create({
-        data: {
-          email,
-          token: otp,
-          expires,
-        },
-      });
-
-      const emailResult = await sendPasswordResetEmail(email, otpWithDash);
-
-      if (!emailResult.success) {
-        await prisma.verificationToken.deleteMany({
-          where: { email, token: otp },
-        });
-
-        return {
-          error: "Failed to send OTP. Please try again.",
-          success: false,
-        };
-      }
-    }
-
-    // Prevents leaking whether an account exists or not
-    return {
-      message:
-        "If an account exists with this email, you will receive reset instructions",
-      success: true,
-    };
-  } catch (error) {
-    console.error("Send OTP error:", error);
     return {
       error: "An unexpected error occurred. Please try again later.",
       success: false,

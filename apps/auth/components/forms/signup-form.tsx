@@ -7,18 +7,20 @@ import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+} from "@repo/ui/components/custom-form-field";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Mail } from "lucide-react";
 import Link from "next/link";
-import GoogleAuthButton from "./GoogleAuthButton";
-import GitHubAuthButton from "./GitHubAuthButton";
-import { sendOtp, verifyOtp, registerUser } from "@/actions/auth";
+import GoogleAuthButton from "../GoogleAuthButton";
+import GitHubAuthButton from "../GitHubAuthButton";
+import { sendOtp, verifyOtp, registerUser } from "@/actions/auth-actions";
 import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
 import { toast } from "sonner";
 import { signIn } from "@repo/auth";
+import { Button } from "@repo/ui/components/button";
+import { Separator } from "@repo/ui/components/separator";
+import { Spinner } from "@repo/ui/components/spinner";
 
 /**
  * Multi-step sign-up form with email verification using OTP.
@@ -185,16 +187,16 @@ const SignUpForm = () => {
       <div className="grid gap-10">
         <h1 className="text-2xl font-bold text-center">Create your account</h1>
         <div className="grid gap-4">
-          <CustomButton
-            variant={ButtonVariant.DEFAULT}
+          <Button
             type="button"
-            icon={<Mail />}
-            text="Continue with Email"
             className="rounded-full"
             onClick={() => setCurrentStep("email")}
-          />
+          >
+            <Mail />
+            Continue with Email
+          </Button>
 
-          <hr className="border-border w-full h-px border-b-0 border-x-0 border-t-[1px]" />
+          <Separator />
 
           <GoogleAuthButton />
           <GitHubAuthButton />
@@ -218,10 +220,10 @@ const SignUpForm = () => {
           onSubmit={emailForm.handleSubmit(onEmailSubmit)}
           className="grid gap-6"
         >
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Create your account</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              Enter your email below to create your account
+              Fill in the form below to create your account
             </p>
           </div>
 
@@ -231,24 +233,22 @@ const SignUpForm = () => {
             inputType="email"
             name="email"
             label="Email"
-            placeholder="m@example.com"
+            placeholder="e.g. m@example.com"
           />
 
           <div className="grid gap-2">
-            <CustomButton
-              variant={ButtonVariant.DEFAULT}
-              text="Continue"
-              type="submit"
-              isLoading={isPending}
-            />
+            <Button disabled={isPending}>
+              {isPending ? <Spinner /> : "Continue"}
+            </Button>
 
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              text="Go back"
+            <Button
+              variant="outline"
               type="button"
               disabled={isPending}
               onClick={handleBackClick}
-            />
+            >
+              Go back
+            </Button>
           </div>
         </form>
       </Form>
@@ -275,11 +275,10 @@ const SignUpForm = () => {
           onSubmit={otpForm.handleSubmit(onOtpSubmit)}
           className="grid gap-6"
         >
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Verify your email</h1>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <h1 className="text-2xl font-bold">Enter verification code</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              We've emailed a one-time security code to {userEmail}. Please
-              enter it below:
+              We sent a 6-digit code to your email
             </p>
           </div>
 
@@ -293,19 +292,18 @@ const SignUpForm = () => {
           </div>
 
           <div className="grid gap-2">
-            <CustomButton
-              variant={ButtonVariant.DEFAULT}
-              text="Verify OTP"
-              type="submit"
-              isLoading={isPending}
-            />
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              text="Go back"
+            <Button disabled={isPending}>
+              {isPending ? <Spinner /> : "Verify"}
+            </Button>
+
+            <Button
+              variant="outline"
               type="button"
               disabled={isPending}
               onClick={handleBackClick}
-            />
+            >
+              Go back
+            </Button>
           </div>
         </form>
       </Form>
@@ -320,7 +318,7 @@ const SignUpForm = () => {
           onSubmit={personalForm.handleSubmit(onPersonalSubmit)}
           className="grid gap-6"
         >
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Complete your profile</h1>
             <p className="text-muted-foreground text-sm text-balance">
               Enter your details to finish creating your account
@@ -335,7 +333,7 @@ const SignUpForm = () => {
                 inputType="text"
                 name="firstName"
                 label="First Name"
-                placeholder="John"
+                placeholder="e.g. John"
               />
             </div>
             <div className="flex-1">
@@ -345,7 +343,7 @@ const SignUpForm = () => {
                 inputType="text"
                 name="lastName"
                 label="Last Name"
-                placeholder="Doe"
+                placeholder="e.g. Doe"
               />
             </div>
           </div>
@@ -360,19 +358,18 @@ const SignUpForm = () => {
           />
 
           <div className="grid gap-2">
-            <CustomButton
-              variant={ButtonVariant.DEFAULT}
-              text="Sign up"
-              type="submit"
-              isLoading={isPending}
-            />
-            <CustomButton
-              variant={ButtonVariant.OUTLINE}
-              text="Go back"
+            <Button disabled={isPending}>
+              {isPending ? <Spinner /> : "Sign Up"}
+            </Button>
+
+            <Button
+              variant="outline"
               type="button"
               disabled={isPending}
               onClick={handleBackClick}
-            />
+            >
+              Go back
+            </Button>
           </div>
         </form>
       </Form>

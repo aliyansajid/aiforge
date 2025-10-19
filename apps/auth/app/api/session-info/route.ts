@@ -146,8 +146,8 @@ export async function POST(request: NextRequest) {
           country: locationData.country,
           region: locationData.region,
           city: locationData.city,
-          lat: locationData.lat,
-          lon: locationData.lon,
+          latitude: locationData.lat,
+          longitude: locationData.lon,
           timezone: locationData.timezone,
         },
       });

@@ -1,5 +1,5 @@
-import DeletionConfirmationDialog from "@/components/DeletionConfirmationDialog";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+import DeletionConfirmationDialog from "@/components/dialogs/deletion-confirmation-dialog";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 
 const Data = () => {
   return (

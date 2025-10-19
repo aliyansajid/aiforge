@@ -21,8 +21,8 @@ import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+} from "@repo/ui/components/custom-form-field";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import { emailSchema, otpSchema } from "@/schemas/auth";
 import {
   sendEmailChangeOtp,

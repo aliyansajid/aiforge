@@ -16,7 +16,7 @@ import {
 } from "@repo/ui/components/dialog";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import VerifyMfaDeviceDialog from "@/components/VerifyMfaDeviceDialog";
+import VerifyMfaDeviceDialog from "@/components/dialogs/verify-mfa-device-dialog";
 
 interface RecoveryCodesDialogProps {
   hasRecoveryCodes: boolean;

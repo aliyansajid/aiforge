@@ -1,47 +1,39 @@
 "use client";
 
 import z from "zod";
+import { toast } from "sonner";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@repo/ui/components/form";
-import { toast } from "sonner";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
 import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
+import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
-import { DialogDescription } from "@radix-ui/react-dialog";
-import { signOut, useSession } from "@repo/auth";
-import { deleteAccount } from "@/actions/account-deletion-actions";
+} from "@repo/ui/components/custom-form-field";
+import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
+import { personalInfoSchema } from "@/schemas/auth";
+import { setupPassword } from "@/actions/account-actions";
 
-const DeletionConfirmationDialog = () => {
-  const { data: session } = useSession();
+const formSchema = personalInfoSchema.pick({ password: true });
+
+const PasswordSetupDialog = () => {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const formSchema = z.object({
-    email: z
-      .email("Please enter a valid email address")
-      .refine(
-        (email) => email === session?.user?.email,
-        "Email must match your account email"
-      ),
-  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      password: "",
     },
   });
 
@@ -49,19 +41,18 @@ const DeletionConfirmationDialog = () => {
     startTransition(async () => {
       try {
         const formData = new FormData();
-        formData.append("email", values.email);
+        formData.append("password", values.password);
 
-        const response = await deleteAccount(formData);
+        const response = await setupPassword(formData);
 
         if (response.success) {
-          await signOut();
+          setOpen(false);
+          toast.success(response.message);
         } else {
-          toast.error(
-            response.error || "Unable to delete account. Please try again."
-          );
+          toast.error(response.error);
         }
       } catch (error) {
-        toast.error("An unexpected error occurred. Please try again later.");
+        toast.error("Something went wrong. Please try again.");
       }
     });
   };
@@ -70,31 +61,30 @@ const DeletionConfirmationDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <CustomButton
-          variant={ButtonVariant.DESTRUCTIVE}
-          text="Delete"
+          variant={ButtonVariant.OUTLINE}
+          text="Set up"
           size="sm"
           className="rounded-full"
         />
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <DialogHeader>
-              <DialogTitle>Are you sure?</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                This action will delete all of your data associated with AIForge
-                and you will be logged out. You can restore your data if you log
-                in again within 30 days. After 30 days your data will be
-                permanently deleted.
+              <DialogTitle>Set up password</DialogTitle>
+              <DialogDescription>
+                Create a password to enable email and password sign-in for your
+                account.
               </DialogDescription>
             </DialogHeader>
 
             <CustomFormField
               control={form.control}
               fieldType={FormFieldType.INPUT}
-              name="email"
-              label={`Type your email (${session?.user?.email}) to confirm`}
-              placeholder="Enter your email address"
+              name="password"
+              inputType="password"
+              placeholder="********"
             />
 
             <DialogFooter>
@@ -106,11 +96,10 @@ const DeletionConfirmationDialog = () => {
                 />
               </DialogClose>
               <CustomButton
-                variant={ButtonVariant.DESTRUCTIVE}
-                text="Delete"
-                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                text="Set up password"
                 isLoading={isPending}
-                disabled={!form.formState.isValid}
+                type="submit"
               />
             </DialogFooter>
           </form>
@@ -120,4 +109,4 @@ const DeletionConfirmationDialog = () => {
   );
 };
 
-export default DeletionConfirmationDialog;
+export default PasswordSetupDialog;

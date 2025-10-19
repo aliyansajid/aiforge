@@ -7,13 +7,14 @@ import { Form } from "@repo/ui/components/form";
 import {
   CustomFormField,
   FormFieldType,
-} from "@repo/ui/components/CustomFormField";
-import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
+} from "@repo/ui/components/custom-form-field";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { emailSchema } from "@/schemas/auth";
-import { sendPasswordResetOtp } from "@/actions/auth";
+import { sendPasswordResetOtp } from "@/actions/auth-actions";
 import { toast } from "sonner";
+import { Button } from "@repo/ui/components/button";
+import { Spinner } from "@repo/ui/components/spinner";
 
 const ForgotPasswordForm = () => {
   const router = useRouter();
@@ -53,7 +54,7 @@ const ForgotPasswordForm = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-        <div className="flex flex-col items-center gap-2 text-center">
+        <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Trouble Logging In?</h1>
           <p className="text-muted-foreground text-sm text-balance">
             No worries — enter your registered email to receive reset
@@ -67,22 +68,22 @@ const ForgotPasswordForm = () => {
           inputType="email"
           name="email"
           label="Email"
-          placeholder="m@example.com"
+          placeholder="e.g. m@example.com"
         />
 
         <div className="grid gap-2">
-          <CustomButton
-            variant={ButtonVariant.DEFAULT}
-            text="Send OTP"
-            isLoading={isPending}
-          />
-          <CustomButton
-            variant={ButtonVariant.OUTLINE}
-            text="Back to Login"
+          <Button disabled={isPending}>
+            {isPending ? <Spinner /> : "Continue"}
+          </Button>
+
+          <Button
+            variant="outline"
             type="button"
             disabled={isPending}
             onClick={() => router.push("/login")}
-          />
+          >
+            Back to Login
+          </Button>
         </div>
       </form>
     </Form>
