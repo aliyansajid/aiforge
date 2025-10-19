@@ -7,6 +7,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { encode as defaultEncode } from "next-auth/jwt";
 import { v4 as uuid } from "uuid";
+import "./types";
 
 // Create and configure the Prisma adapter for database integration
 const adapter = PrismaAdapter(prisma);
@@ -60,7 +61,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("Invalid credentials");
         }
 
-        return user; // Successful login returns the user object
+        // ✅ Return user with all required fields
+        return {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          image: user.image,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+        };
       },
     }),
   ],
@@ -83,7 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   // Callback hooks to customize session and token logic
   callbacks: {
-    // Modify JWT token before it’s stored
+    // Modify JWT token before it's stored
     async jwt({ token, account }) {
       if (account?.provider === "credentials") {
         token.credentials = true; // Flag for custom encode logic
@@ -93,10 +104,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // Add custom data to the session object
     async session({ session, user }) {
-      session.user.name = `${user.firstName} ${user.lastName}`.trim();
-      session.user.firstName = user.firstName;
-      session.user.lastName = user.lastName;
-      session.user.createdAt = user.createdAt;
+      // ✅ Type assertion to access custom fields
+      const dbUser = user as typeof user & {
+        firstName: string;
+        lastName: string;
+        createdAt: Date;
+      };
+
+      session.user.name = `${dbUser.firstName} ${dbUser.lastName}`.trim();
+      session.user.firstName = dbUser.firstName;
+      session.user.lastName = dbUser.lastName;
+      session.user.createdAt = dbUser.createdAt;
 
       return session;
     },
