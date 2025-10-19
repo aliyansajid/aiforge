@@ -4,6 +4,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
     "@repo/db": "*",
+    "bcryptjs": "^3.0.2",
     "next-auth": "^5.0.0-beta.29",
     "uuid": "^11.1.0"
   },
