@@ -34,8 +34,6 @@ const TEAM_ICONS = [
   "Atom",
 ] as const;
 
-type IconName = (typeof TEAM_ICONS)[number];
-
 interface IconPickerProps {
   value?: string;
   onSelect: (icon: string) => void;
@@ -49,7 +47,7 @@ export function IconPicker({ value = "Building2", onSelect }: IconPickerProps) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="h-10 w-full" asChild>
+      <PopoverTrigger className="w-full" asChild>
         <Button variant="outline">
           <IconComponent />
           <span className="flex-1 text-left">{value}</span>
@@ -66,7 +64,7 @@ export function IconPicker({ value = "Building2", onSelect }: IconPickerProps) {
                 key={iconName}
                 variant="ghost"
                 className={cn(
-                  "h-12 w-12 p-0 hover:bg-accent",
+                  "h-12 w-12 hover:bg-accent",
                   isSelected && "bg-accent"
                 )}
                 onClick={() => {

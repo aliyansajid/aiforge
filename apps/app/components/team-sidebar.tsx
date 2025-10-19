@@ -20,13 +20,14 @@ import {
 } from "@repo/ui/components/sidebar";
 import { useSession } from "@repo/auth";
 import { useParams } from "next/navigation";
+import { Skeleton } from "@repo/ui/components/skeleton";
 
 interface TeamSidebarProps extends React.ComponentProps<typeof Sidebar> {
   teams: any[];
 }
 
 export function TeamSidebar({ teams, ...props }: TeamSidebarProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const params = useParams();
   const teamSlug = params.slug as string;
 
@@ -59,6 +60,9 @@ export function TeamSidebar({ teams, ...props }: TeamSidebarProps) {
     },
   ];
 
+  // Session is loading
+  const isLoadingSession = status === "loading";
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -68,12 +72,28 @@ export function TeamSidebar({ teams, ...props }: TeamSidebarProps) {
         <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        {session?.user && (
+        {isLoadingSession ? (
+          <div className="flex items-center gap-2 p-2">
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <div className="flex flex-1 flex-col gap-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-2.5 w-32" />
+            </div>
+          </div>
+        ) : session?.user ? (
           <NavUser
             user={{
-              name: session.user.name!,
-              email: session.user.email!,
+              name: session.user.name || "Guest User",
+              email: session.user.email || "guest@example.com",
               avatar: session.user.image ?? "",
+            }}
+          />
+        ) : (
+          <NavUser
+            user={{
+              name: "Guest User",
+              email: "Not signed in",
+              avatar: "",
             }}
           />
         )}

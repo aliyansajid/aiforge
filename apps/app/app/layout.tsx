@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "@repo/ui/styles/globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@repo/ui/components/theme-provider";
 import { Toaster } from "@repo/ui/components/sonner";
 import { auth, SessionProvider } from "@repo/auth";
 
@@ -48,7 +48,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             {children}
-            <Toaster />
+            <Toaster position="top-center" richColors />
           </ThemeProvider>
         </SessionProvider>
       </body>

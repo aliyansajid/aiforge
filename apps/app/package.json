@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "email": "email dev --dir emails --port 3001"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -35,6 +36,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-email/components": "^0.5.7",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
@@ -46,6 +48,7 @@
     "react": "19.1.0",
     "react-day-picker": "^9.11.0",
     "react-dom": "19.1.0",
+    "react-email": "^4.3.1",
     "react-hook-form": "^7.63.0",
     "react-resizable-panels": "^3.0.6",
     "recharts": "^2.15.4",
@@ -54,6 +57,8 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@react-email/preview-server": "^4.3.1",
+    "@react-email/render": "^1.4.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -76,8 +76,7 @@ export function TeamSwitcher({ teams }: { teams: Team[] }) {
     (LucideIcons as any)[activeTeam.icon] || LucideIcons.Building2;
 
   const handleTeamSwitch = (team: Team) => {
-    // Navigate to the team's page
-    router.push(`/teams/${team.slug}`);
+    router.push(`/teams/${team.slug}/`);
   };
 
   return (

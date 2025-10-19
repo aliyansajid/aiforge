@@ -8,7 +8,7 @@ import {
   FormFieldType,
 } from "@repo/ui/components/CustomFormField";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/CustomButton";
-import { createTeamSchema } from "@/lib/validations";
+import { createTeamSchema } from "@/schema/index";
 import { createTeam } from "@/actions/team-actions";
 import { useTransition } from "react";
 import { toast } from "sonner";

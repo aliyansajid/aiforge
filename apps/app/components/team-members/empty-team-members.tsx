@@ -1,11 +1,8 @@
-import { PlusIcon } from "lucide-react";
-
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
-import { Button } from "@repo/ui/components/button";
 import {
   Empty,
   EmptyContent,
@@ -14,8 +11,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@repo/ui/components/empty";
+import { InviteDialog } from "./invite-dialog";
 
-export function EmptyAvatarGroup() {
+interface EmptyTeamMembersProps {
+  canInvite: boolean;
+  teamId: string;
+}
+
+export function EmptyTeamMembers({ canInvite, teamId }: EmptyTeamMembersProps) {
   return (
     <Empty>
       <EmptyHeader>
@@ -47,10 +50,7 @@ export function EmptyAvatarGroup() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button size="sm">
-          <PlusIcon />
-          Invite Members
-        </Button>
+        {canInvite && <InviteDialog teamId={teamId} />}
       </EmptyContent>
     </Empty>
   );

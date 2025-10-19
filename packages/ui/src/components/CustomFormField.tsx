@@ -18,6 +18,13 @@ import {
 } from "@repo/ui/components/input-otp";
 import { Button } from "@repo/ui/components/button";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@repo/ui/components/select";
 
 interface CustomProps {
   control: Control<any>;
@@ -27,6 +34,8 @@ interface CustomProps {
   label?: string;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  children?: React.ReactNode;
   onChange?: (value: string) => void;
   accept?: string;
 }
@@ -118,6 +127,23 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
         </FormControl>
       );
 
+    case FormFieldType.SELECT:
+      return (
+        <Select
+          onValueChange={field.onChange}
+          defaultValue={field.value}
+          disabled={props.disabled}
+        >
+          <FormControl>
+            <SelectTrigger className={props.className}>
+              <SelectValue
+                placeholder={props.placeholder || "Select an option"}
+              />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>{props.children}</SelectContent>
+        </Select>
+      );
     default:
       return null;
   }

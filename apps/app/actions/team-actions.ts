@@ -82,10 +82,10 @@ export async function createTeam(input: {
   icon: string;
 }): Promise<ActionResponse> {
   try {
-    if (!input.name || input.name.length < 2) {
+    if (!input.name || input.name.length < 3) {
       return {
         success: false,
-        message: "Team name must be at least 2 characters",
+        message: "Team name must be at least 3 characters",
       };
     }
 

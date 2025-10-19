@@ -147,10 +147,10 @@ const General = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Team settings
+          Manage your team settings and invitations
         </p>
-        <h1 className="text-2xl font-bold">General</h1>
       </div>
 
       <Card>
@@ -186,6 +186,7 @@ const General = () => {
                   />
                   <DialogFooter>
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => setOpenNameDialog(false)}
                     >
@@ -213,7 +214,9 @@ const General = () => {
                 aria-label="Copy Team ID"
                 title="Copy Team ID"
                 size="icon-xs"
-                onClick={() => copyToClipboard(team.id)}
+                onClick={() => {
+                  copyToClipboard(team.id);
+                }}
               >
                 {isCopied ? <LucideIcons.Check /> : <LucideIcons.Copy />}
               </InputGroupButton>

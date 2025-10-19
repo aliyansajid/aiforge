@@ -43,8 +43,11 @@ export async function getTeamBySlug(slug: string): Promise<ActionResponse> {
       };
     }
 
+    // Extract member before checking
+    const userMember = team.members[0];
+
     // Check if user is a member
-    if (team.members.length === 0) {
+    if (!userMember) {
       return {
         success: false,
         message: "You are not a member of this team",
@@ -59,7 +62,7 @@ export async function getTeamBySlug(slug: string): Promise<ActionResponse> {
         name: team.name,
         slug: team.slug,
         icon: team.icon,
-        role: team.members[0].role,
+        role: userMember.role, // Now TypeScript knows it exists
         createdAt: team.createdAt,
         updatedAt: team.updatedAt,
       },
@@ -78,10 +81,10 @@ export async function updateTeamName(
   name: string
 ): Promise<ActionResponse> {
   try {
-    if (!name || name.length < 2) {
+    if (!name || name.length < 3) {
       return {
         success: false,
-        message: "Team name must be at least 2 characters",
+        message: "Team name must be at least 3 characters",
       };
     }
 
