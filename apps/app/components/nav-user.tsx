@@ -8,7 +8,6 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-
 import {
   Avatar,
   AvatarFallback,
@@ -30,6 +29,27 @@ import {
   useSidebar,
 } from "@repo/ui/components/sidebar";
 
+function getInitials(name: string): string {
+  if (!name) return "";
+
+  const parts = name.split(/\s+/).filter(Boolean);
+
+  if (parts.length >= 2) {
+    const firstInitial = parts[0]?.[0];
+    const secondInitial = parts[1]?.[0];
+
+    if (firstInitial && secondInitial) {
+      return `${firstInitial}${secondInitial}`.toUpperCase();
+    }
+  }
+
+  if (parts.length === 1) {
+    return parts[0]?.[0]?.toUpperCase() || "";
+  }
+
+  return "";
+}
+
 export function NavUser({
   user,
 }: {
@@ -40,17 +60,6 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-
-  // Function to get initials from the user's name
-  const getInitials = (name: string) => {
-    const nameParts = name.trim().split(" ");
-    const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || "";
-    const lastInitial =
-      nameParts.length > 1
-        ? nameParts[nameParts.length - 1]?.charAt(0).toUpperCase() || ""
-        : "";
-    return `${firstInitial}${lastInitial}`;
-  };
 
   const initials = getInitials(user.name);
 

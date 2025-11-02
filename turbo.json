@@ -13,10 +13,13 @@
         "AUTH_GOOGLE_SECRET",
         "AUTH_SECRET",
         "AUTH_URL",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_CDN_URL",
         "SMTP_HOST",
         "SMTP_PORT",
         "SMTP_USER",
         "SMTP_PASS",
+        "SMTP_REPLY_TO",
         "DATABASE_URL"
       ]
     },

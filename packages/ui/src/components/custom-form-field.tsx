@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Control } from "react-hook-form";
 import { Input } from "@repo/ui/components/input";
+import { Textarea } from "@repo/ui/components/textarea";
 import {
   FormControl,
   FormField,
@@ -23,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem,
 } from "@repo/ui/components/select";
 
 interface CustomProps {
@@ -33,11 +33,13 @@ interface CustomProps {
   name: string;
   label?: string;
   placeholder?: string;
+  description?: string;
   className?: string;
   disabled?: boolean;
   children?: React.ReactNode;
-  onChange?: (value: string) => void;
+  onChange?: (value: any) => void;
   accept?: string;
+  rows?: number;
 }
 
 enum FormFieldType {
@@ -47,6 +49,7 @@ enum FormFieldType {
   SELECT = "select",
   RADIO = "radio",
   CHECKBOX = "checkbox",
+  SWITCH = "switch",
 }
 
 const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
@@ -60,27 +63,35 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
             <Input
               type="file"
               accept={props.accept}
+              disabled={props.disabled}
+              className={props.className}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 field.onChange(file);
+                props.onChange?.(file);
               }}
             />
           </FormControl>
         );
       }
 
-      // Handle regular inputs
       return (
         <FormControl>
           <div className="relative">
             <Input
               {...field}
               placeholder={props.placeholder}
+              disabled={props.disabled}
               type={
                 props.inputType === "password" && showPassword
                   ? "text"
                   : props.inputType
               }
+              className={props.className}
+              onChange={(e) => {
+                field.onChange(e);
+                props.onChange?.(e.target.value);
+              }}
             />
             {props.inputType === "password" && (
               <Button
@@ -91,13 +102,30 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="text-muted-foreground" />
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <Eye className="text-muted-foreground" />
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 )}
               </Button>
             )}
           </div>
+        </FormControl>
+      );
+
+    case FormFieldType.TEXTAREA:
+      return (
+        <FormControl>
+          <Textarea
+            {...field}
+            placeholder={props.placeholder}
+            disabled={props.disabled}
+            className={props.className}
+            rows={props.rows || 4}
+            onChange={(e) => {
+              field.onChange(e);
+              props.onChange?.(e.target.value);
+            }}
+          />
         </FormControl>
       );
 
@@ -107,6 +135,7 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
           <InputOTP
             {...field}
             maxLength={6}
+            disabled={props.disabled}
             onChange={(value) => {
               field.onChange(value);
               props.onChange?.(value);
@@ -130,7 +159,10 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
     case FormFieldType.SELECT:
       return (
         <Select
-          onValueChange={field.onChange}
+          onValueChange={(value) => {
+            field.onChange(value);
+            props.onChange?.(value);
+          }}
           defaultValue={field.value}
           disabled={props.disabled}
         >
@@ -144,6 +176,7 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
           <SelectContent>{props.children}</SelectContent>
         </Select>
       );
+
     default:
       return null;
   }
@@ -151,6 +184,7 @@ const RenderField = ({ field, props }: { field: any; props: CustomProps }) => {
 
 const CustomFormField = (props: CustomProps) => {
   const { control, fieldType, name, label } = props;
+
   return (
     <FormField
       control={control}

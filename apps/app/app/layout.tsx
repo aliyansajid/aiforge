@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import "@repo/ui/styles/globals.css";
+import "@repo/ui/globals.css";
+import { auth, SessionProvider } from "@repo/auth";
 import { ThemeProvider } from "@repo/ui/components/theme-provider";
 import { Toaster } from "@repo/ui/components/sonner";
-import { auth, SessionProvider } from "@repo/auth";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -16,18 +16,17 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AIForge - One-Click AI Model Deployment & Monetization",
+  title: "AIForge | One-Click AI Model Deployment & Monetization Platform",
   description:
-    "Deploy, manage, and monetize AI models with a single click. No complex infrastructure setup required. Upload your AI models and get instant API endpoints with automatic scaling and payment processing.",
+    "Deploy, manage, and monetize your AI models in one click. AIForge automates hosting, API generation, scaling, and monetization for fast, cost-effective AI adoption. ",
   keywords: [
     "AI deployment",
+    "Model deployment",
     "AI monetization",
-    "machine learning",
-    "API generation",
-    "AI models",
-    "cloud deployment",
-    "artificial intelligence",
-    "model hosting",
+    "FastAPI",
+    "Next.js",
+    "Machine Learning API",
+    "Model Hosting",
   ],
 };
 
@@ -39,7 +38,9 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <SessionProvider session={session}>
           <ThemeProvider
             attribute="class"

@@ -1,12 +1,21 @@
+"use client";
+
 import { signIn } from "@repo/auth";
 import { Button } from "@repo/ui/components/button";
 
 const GoogleAuthButton = () => {
+  const handleGoogleSignIn = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+    await signIn("google", { callbackUrl });
+  };
+
   return (
     <Button
       variant="outline"
       className="rounded-full"
-      onClick={() => signIn("google")}
+      onClick={handleGoogleSignIn}
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <path

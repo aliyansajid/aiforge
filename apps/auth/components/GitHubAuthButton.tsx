@@ -1,12 +1,21 @@
+"use client";
+
 import { signIn } from "@repo/auth";
 import { Button } from "@repo/ui/components/button";
 
 const GitHubAuthButton = () => {
+  const handleGitHubSignIn = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+    await signIn("github", { callbackUrl });
+  };
+
   return (
     <Button
       variant="outline"
       className="rounded-full"
-      onClick={() => signIn("github")}
+      onClick={handleGitHubSignIn}
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <path

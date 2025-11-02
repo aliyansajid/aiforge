@@ -1,11 +1,34 @@
 {
   "cSpell.words": [
+    "aiforge",
     "Allyan",
     "Amar",
+    "Bursty",
+    "codellama",
+    "Cooldown",
+    "cuid",
+    "deepseek",
     "evilrabbit",
     "Fiaz",
+    "Friendli",
+    "gptq",
+    "HUGGINGFACE",
+    "Inferentia",
+    "JAXLIB",
+    "KERAS",
     "maxleiter",
+    "MULTIMODAL",
+    "ngram",
+    "ONNX",
+    "payperuse",
+    "Qwen",
+    "safetensors",
     "Sajid",
-    "shadcn"
+    "SCIKIT",
+    "shadcn",
+    "starcoder",
+    "TORCHSERVE",
+    "turbopack",
+    "XLARGE"
   ]
 }

@@ -22,15 +22,13 @@ model User {
   role   UserRole      @default(CONSUMER)
   status AccountStatus @default(ACTIVE)
 
-  accounts      Account[]
-  sessions      Session[]
-  mfaDevices    MfaDevice[]
-  recoveryCodes RecoveryCode[]
-  
-  // Team relationships
-  teamMembers      TeamMember[]
-  teamInvitations  TeamInvitation[]
-  
+  accounts        Account[]
+  sessions        Session[]
+  mfaDevices      MfaDevice[]
+  recoveryCodes   RecoveryCode[]
+  teamMembers     TeamMember[]
+  teamInvitations TeamInvitation[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -127,40 +125,35 @@ model RecoveryCode {
   @@index([userId])
 }
 
-// ============================================
-// TEAM MANAGEMENT MODELS
-// ============================================
-
 model Team {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  description String?
-  icon        String  @default("Users")
-  
+  id    String  @id @default(cuid())
+  name  String
+  slug  String  @unique
+  image String?
+
   members     TeamMember[]
   invitations TeamInvitation[]
   projects    Project[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([slug])
 }
 
 model TeamMember {
-  id     String @id @default(cuid())
+  id     String   @id @default(cuid())
   teamId String
   userId String
   role   TeamRole @default(MEMBER)
-  
+
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  @@unique([teamId, userId]) // User can only be in a team once
+
+  @@unique([teamId, userId])
   @@index([teamId])
   @@index([userId])
 }
@@ -173,152 +166,54 @@ model TeamInvitation {
   token     String           @unique
   status    InvitationStatus @default(PENDING)
   expiresAt DateTime
-  
-  invitedBy String // User ID of who sent the invitation
-  
+
+  invitedBy String
+
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([teamId])
   @@index([email])
   @@index([token])
 }
 
-// ============================================
-// PROJECT & MODEL DEPLOYMENT MODELS
-// ============================================
-
 model Project {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  // URL-friendly identifier (unique within team)
-  description String?
-  teamId      String
-  
-  visibility ProjectVisibility @default(PRIVATE)
-  status     ProjectStatus     @default(ACTIVE)
-  
-  team      Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  endpoints Endpoint[]
-  apiKeys   ApiKey[]
-  
+  id     String @id @default(cuid())
+  name   String
+  slug   String
+  teamId String
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  @@unique([teamId, slug]) // Slug unique within team
+
+  @@unique([teamId, slug])
   @@index([teamId])
   @@index([slug])
 }
 
-model Endpoint {
-  id          String  @id @default(cuid())
-  projectId   String
-  name        String
-  description String?
-  
-  // Model configuration
-  modelFramework ModelFramework // TensorFlow, PyTorch, ONNX, etc.
-  modelVersion   String
-  modelPath      String         // Storage path to the model file
-  
-  // Deployment configuration
-  deploymentStatus DeploymentStatus @default(PENDING)
-  containerImage   String?          // Docker image reference
-  apiEndpoint      String?          @unique // Generated API URL
-  
-  // Resource configuration
-  cpuLimit    Float?  @default(1.0) // CPU cores
-  memoryLimit Int?    @default(2048) // Memory in MB
-  gpuEnabled  Boolean @default(false)
-  
-  // Pricing & access
-  accessType     AccessType @default(PRIVATE)
-  pricingModel   PricingModel? // null for free models
-  pricePerCall   Float?        // For pay-per-call
-  subscriptionFee Float?       // For subscription
-  
-  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  usageMetrics  UsageMetric[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime? // Soft delete
-  
-  @@index([projectId])
-  @@index([apiEndpoint])
-  @@index([deploymentStatus])
-}
-
-model ApiKey {
-  id          String  @id @default(cuid())
-  projectId   String
-  name        String
-  key         String  @unique // Hashed API key
-  keyPreview  String  // First few characters for display (e.g., "sk_live_abc...")
-  
-  permissions ApiKeyPermission[] // Array of permissions
-  
-  isActive  Boolean   @default(true)
-  expiresAt DateTime?
-  lastUsedAt DateTime?
-  
-  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  usage   UsageMetric[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([projectId])
-  @@index([key])
-}
-
-model UsageMetric {
-  id         String   @id @default(cuid())
-  endpointId String
-  apiKeyId   String?
-  
-  requestCount    Int      @default(0)
-  successCount    Int      @default(0)
-  errorCount      Int      @default(0)
-  totalLatency    Float    @default(0) // Total response time in ms
-  averageLatency  Float?   // Calculated field
-  
-  timestamp DateTime @default(now())
-  
-  endpoint Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
-  apiKey   ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
-  
-  @@index([endpointId])
-  @@index([apiKeyId])
-  @@index([timestamp])
-}
-
-// ============================================
-// ENUMS
-// ============================================
-
 enum UserRole {
-  ADMIN       // Platform administrators - full system access
-  DEVELOPER   // Professional AI developers who upload and monetize models
-  CONTRIBUTOR // Community contributors who share free/open models
-  CONSUMER    // Users who consume AI models via APIs
+  ADMIN
+  DEVELOPER
+  CONSUMER
 }
 
 enum AccountStatus {
-  ACTIVE   // Normal active account
-  SUSPENDED // Temporarily suspended (can be restored)
-  BLOCKED  // Permanently blocked
-  PENDING  // Account pending verification/approval
-  INACTIVE // User deactivated their own account
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+  PENDING
+  INACTIVE
 }
 
 enum TeamRole {
-  OWNER  // Team creator - full control, can delete team
-  ADMIN  // Can manage members, projects, and settings
-  MEMBER // Can create/manage projects and deploy models
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 enum InvitationStatus {
@@ -327,56 +222,4 @@ enum InvitationStatus {
   DECLINED
   EXPIRED
   CANCELLED
-}
-
-enum ProjectVisibility {
-  PRIVATE // Only team members can see
-  PUBLIC  // Listed publicly, anyone can view
-  UNLISTED // Not listed, but accessible via direct link
-}
-
-enum ProjectStatus {
-  ACTIVE
-  ARCHIVED
-  SUSPENDED
-}
-
-enum ModelFramework {
-  TENSORFLOW
-  PYTORCH
-  ONNX
-  SCIKIT_LEARN
-  HUGGINGFACE
-  KERAS
-  CUSTOM
-}
-
-enum DeploymentStatus {
-  PENDING     // Initial state
-  BUILDING    // Building container
-  DEPLOYING   // Deploying to cloud
-  RUNNING     // Successfully deployed and running
-  FAILED      // Deployment failed
-  STOPPED     // Manually stopped
-  UPDATING    // Being updated to new version
-}
-
-enum AccessType {
-  PRIVATE // Only accessible via API keys
-  PUBLIC  // Anyone can access (rate-limited)
-  PAID    // Requires payment/subscription
-}
-
-enum PricingModel {
-  FREE
-  PAY_PER_CALL
-  SUBSCRIPTION
-  TIERED // Different pricing tiers
-}
-
-enum ApiKeyPermission {
-  READ      // Can call endpoints
-  WRITE     // Can modify endpoint config
-  ADMIN     // Full admin access
-  METRICS   // Can view usage metrics
 }

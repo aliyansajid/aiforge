@@ -67,21 +67,24 @@ const LoginForm = () => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const callbackUrl = searchParams.get("callbackUrl") || "/";
+
         const response = await signIn("credentials", {
           email: values.email,
           password: values.password,
           redirect: false,
+          callbackUrl,
         });
 
-        if (response?.error) {
+        if (!response?.error) {
+          await captureSessionInfo();
+          router.push(callbackUrl);
+        } else {
           toast.error("Invalid credentials");
-          return;
         }
-
-        await captureSessionInfo();
-        router.push("/");
       } catch (error) {
-        toast.error("Something went wrong. Please try again.");
+        toast.error("Something went wrong.");
       }
     });
   }

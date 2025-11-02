@@ -1,0 +1,29 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@repo/ui/components/button";
+import { Plus } from "lucide-react";
+import { CreateProjectDialog } from "./dialogs/create-project-dialog";
+
+interface CreateProjectButtonProps {
+  teamId: string;
+}
+
+export function CreateProjectButton({ teamId }: CreateProjectButtonProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setIsDialogOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" />
+        Create Project
+      </Button>
+
+      <CreateProjectDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        teamId={teamId}
+      />
+    </>
+  );
+}

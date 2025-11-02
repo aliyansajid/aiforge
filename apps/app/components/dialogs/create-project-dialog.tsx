@@ -14,46 +14,47 @@ import {
 } from "@repo/ui/components/dialog";
 import { Button } from "@repo/ui/components/button";
 import { Form } from "@repo/ui/components/form";
-import { createTeam } from "@/app/actions/team-actions";
+import { createProject } from "@/app/actions/project-actions";
 import { toast } from "sonner";
-import { teamSchema } from "@/schema";
+import { projectSchema } from "@/schema";
 import {
   CustomFormField,
   FormFieldType,
 } from "@repo/ui/src/components/custom-form-field";
 import { Spinner } from "@repo/ui/src/components/spinner";
-import { CreateTeamDialogProps } from "@/types";
+import { CreateProjectDialogProps } from "@/types";
 
-export function CreateTeamDialog({
+export function CreateProjectDialog({
   open,
   onOpenChange,
-}: CreateTeamDialogProps) {
+  teamId,
+}: CreateProjectDialogProps) {
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<z.infer<typeof teamSchema>>({
-    resolver: zodResolver(teamSchema),
+  const form = useForm<z.infer<typeof projectSchema>>({
+    resolver: zodResolver(projectSchema),
     defaultValues: {
       name: "",
-      image: undefined,
     },
   });
 
-  async function onSubmit(data: z.infer<typeof teamSchema>) {
+  async function onSubmit(data: z.infer<typeof projectSchema>) {
     const formData = new FormData();
     formData.append("name", data.name.trim());
 
-    if (data.image) {
-      formData.append("image", data.image as File);
-    }
-
     startTransition(async () => {
       try {
-        const result = await createTeam(formData);
-        toast.success(result.message || "Team created successfully.");
-        form.reset();
-        onOpenChange(false);
+        const result = await createProject(teamId, formData);
+
+        if (result.success) {
+          toast.success(result.message);
+          form.reset();
+          onOpenChange(false);
+        } else {
+          toast.error(result.message);
+        }
       } catch (error) {
-        toast.error((error as Error).message || "Failed to create team.");
+        toast.error((error as Error).message || "Failed to create project.");
       }
     });
   }
@@ -68,9 +69,9 @@ export function CreateTeamDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create team</DialogTitle>
+          <DialogTitle>Create project</DialogTitle>
           <DialogDescription>
-            Add a new team to collaborate with others.
+            Add a new project to organize your AI models and deployments.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -80,17 +81,7 @@ export function CreateTeamDialog({
               fieldType={FormFieldType.INPUT}
               name="name"
               label="Name"
-              placeholder="Acme Inc"
-              disabled={isPending}
-            />
-
-            <CustomFormField
-              control={form.control}
-              fieldType={FormFieldType.INPUT}
-              inputType="file"
-              name="image"
-              label="Image"
-              accept=".jpg,.jpeg,.png,.webp"
+              placeholder="My AI Project"
               disabled={isPending}
             />
 
@@ -104,7 +95,7 @@ export function CreateTeamDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? <Spinner /> : "Create team"}
+                {isPending ? <Spinner /> : "Create project"}
               </Button>
             </DialogFooter>
           </form>

@@ -1,11 +1,16 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ["@repo/ui", "@repo/auth", "@repo/db"],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  generateBuildId: async () => {
-    return "build-" + Date.now();
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["@repo/ui", "@repo/db", "@repo/auth"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+        port: "",
+        pathname: "/aiforge-assets/**",
+      },
+    ],
   },
 };
 

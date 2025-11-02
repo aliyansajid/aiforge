@@ -92,7 +92,7 @@ export const verificationEmailTemplate = (otp: string) => `
                                     <img
                                       alt="AIForge logo"
                                       height="auto"
-                                      src="https://your-domain.com/logo.png"
+                                      src="https://d3id63e7oa4784.cloudfront.net/logo-white.svg"
                                       style="
                                         border: 0;
                                         display: block;

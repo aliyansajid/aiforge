@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { prisma } from "@repo/db";
+import { AccountStatus, prisma, UserRole } from "@repo/db";
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -309,27 +309,19 @@ export async function registerUser(formData: FormData) {
     password: formData.get("password") as string,
   };
 
-  // Check for missing values before parsing
+  // Validate required fields
   if (
     !rawData.email ||
     !rawData.firstName ||
     !rawData.lastName ||
     !rawData.password
   ) {
-    console.error("Register user error: All fields are required");
-    return {
-      error: "All fields are required",
-      success: false,
-    };
+    return { error: "All fields are required", success: false };
   }
 
-  // Validate email format
+  // Validate email
   const emailValidation = emailSchema.safeParse({ email: rawData.email });
   if (!emailValidation.success) {
-    console.error(
-      "Register user email validation error:",
-      emailValidation.error.issues
-    );
     return {
       error: emailValidation.error.issues[0]?.message || "Invalid email",
       success: false,
@@ -343,10 +335,6 @@ export async function registerUser(formData: FormData) {
     password: rawData.password,
   });
   if (!personalValidation.success) {
-    console.error(
-      "Register user personal info validation error:",
-      personalValidation.error.issues
-    );
     return {
       error: personalValidation.error.issues[0]?.message || "Invalid input",
       success: false,
@@ -357,11 +345,8 @@ export async function registerUser(formData: FormData) {
   const { firstName, lastName, password } = personalValidation.data;
 
   try {
-    // Final safeguard against duplicate registration
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    // Check for existing user
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return {
         error: "An account with this email already exists",
@@ -371,16 +356,34 @@ export async function registerUser(formData: FormData) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with default role and active status
-    await prisma.user.create({
+    // Create user
+    const user = await prisma.user.create({
       data: {
         email,
         firstName,
         lastName,
         password: hashedPassword,
         emailVerified: new Date(),
-        role: "CONSUMER",
-        status: "ACTIVE",
+        role: UserRole.DEVELOPER,
+        status: AccountStatus.ACTIVE,
+      },
+    });
+
+    // Generate unique slugs for team and project
+    const randomSuffix = Math.floor(Math.random() * 10000);
+    const teamSlug = `${firstName.toLowerCase()}-${lastName.toLowerCase()}-team-${randomSuffix}`;
+
+    // Create default team with user as OWNER
+    const team = await prisma.team.create({
+      data: {
+        name: `${firstName} ${lastName}'s Team`,
+        slug: teamSlug,
+        members: {
+          create: {
+            userId: user.id,
+            role: "OWNER",
+          },
+        },
       },
     });
 
