@@ -33,9 +33,9 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-muted-foreground text-sm text-balance">
             Manage AI model deployments for {currentTeam.name}
           </p>
         </div>

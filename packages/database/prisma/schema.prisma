@@ -22,12 +22,13 @@ model User {
   role   UserRole      @default(CONSUMER)
   status AccountStatus @default(ACTIVE)
 
-  accounts        Account[]
-  sessions        Session[]
-  mfaDevices      MfaDevice[]
-  recoveryCodes   RecoveryCode[]
-  teamMembers     TeamMember[]
-  teamInvitations TeamInvitation[]
+  accounts         Account[]
+  sessions         Session[]
+  mfaDevices       MfaDevice[]
+  recoveryCodes    RecoveryCode[]
+  teamMembers      TeamMember[]
+  teamInvitations  TeamInvitation[]
+  createdEndpoints Endpoint[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -186,7 +187,8 @@ model Project {
   slug   String
   teamId String
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team      Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  endpoints Endpoint[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,6 +196,83 @@ model Project {
   @@unique([teamId, slug])
   @@index([teamId])
   @@index([slug])
+}
+
+model Endpoint {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  projectId   String
+  createdBy   String
+
+  framework String
+  inputType InputType @default(JSON)
+
+  gcsModelPath        String
+  gcsRequirementsPath String
+  gcsInferencePath    String
+
+  imageUri   String?
+  serviceUrl String?
+
+  apiKey String @unique @default(cuid())
+
+  accessType EndpointAccessType @default(PRIVATE)
+
+  status EndpointStatus @default(UPLOADING)
+
+  inputTokenPrice  Decimal? @db.Decimal(10, 6)
+  outputTokenPrice Decimal? @db.Decimal(10, 6)
+
+  pricePerRequest Decimal? @db.Decimal(10, 4)
+
+  errorMessage String? @db.Text
+  buildLogs    String? @db.Text
+  deployedAt   DateTime?
+  lastUsedAt   DateTime?
+
+  project  Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator  User       @relation(fields: [createdBy], references: [id])
+  apiUsage ApiUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@index([slug])
+  @@index([status])
+  @@index([apiKey])
+  @@index([createdBy])
+  @@index([accessType])
+}
+
+model ApiUsage {
+  id         String @id @default(cuid())
+  endpointId String
+
+  method       String
+  path         String
+  statusCode   Int
+  responseTime Int 
+
+  inputTokens  Int? 
+  outputTokens Int?
+
+  apiKey    String?
+  ipAddress String?
+  userAgent String?
+
+  cost Decimal? @db.Decimal(10, 6)
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  timestamp DateTime @default(now())
+
+  @@index([endpointId])
+  @@index([timestamp])
+  @@index([apiKey])
 }
 
 enum UserRole {
@@ -222,4 +301,28 @@ enum InvitationStatus {
   DECLINED
   EXPIRED
   CANCELLED
+}
+
+enum EndpointAccessType {
+  PUBLIC  
+  PRIVATE 
+  PAID    
+}
+
+enum EndpointStatus {
+  UPLOADING
+  BUILDING
+  DEPLOYING
+  DEPLOYED
+  FAILED
+  SUSPENDED
+}
+
+enum InputType {
+  JSON      // JSON array/object input [[1,2,3]]
+  IMAGE     // Image file (PNG, JPG, etc.) - base64 encoded
+  TEXT      // Plain text input
+  AUDIO     // Audio file (MP3, WAV, etc.)
+  VIDEO     // Video file (MP4, AVI, etc.)
+  FILE      // Generic file upload
 }

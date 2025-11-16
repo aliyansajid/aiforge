@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiforge-model-api
+    ports:
+      - "8080:8080"
+    environment:
+      # Server Configuration
+      PORT: 8080
+      HOST: 0.0.0.0
+      ENVIRONMENT: development
+
+      # Google Cloud Configuration
+      GOOGLE_CLOUD_PROJECT: aiforge-2026
+      GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json
+      GCS_BUCKET_MODELS: aiforge-models
+      GCS_BUCKET_BUILD: aiforge-build-sources
+      ARTIFACT_REGISTRY_REPO: asia-south1-docker.pkg.dev/aiforge-2026/aiforge-models-repo
+      CLOUD_RUN_REGION: asia-south1
+
+      # Model Configuration
+      MODEL_ID: ${MODEL_ID:-}
+      MODEL_PATH: ${MODEL_PATH:-}
+      DOWNLOAD_MODEL_ON_STARTUP: ${DOWNLOAD_MODEL_ON_STARTUP:-false}
+
+      # API Security
+      API_KEY: ${API_KEY:-dev-test-key-12345}
+      ENABLE_API_KEY_AUTH: ${ENABLE_API_KEY_AUTH:-true}
+
+      # Logging
+      LOG_LEVEL: INFO
+
+    volumes:
+      # Mount local models directory (for local testing without GCS)
+      - ./models:/tmp/models:ro
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    name: aiforge-network

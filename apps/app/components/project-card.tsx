@@ -1,8 +1,13 @@
-// apps/app/components/project-card.tsx
 "use client";
 
 import { Project } from "@/types";
-import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
 import { MoreVertical, Trash2 } from "lucide-react";
 import {
@@ -14,6 +19,7 @@ import {
 import { useState, useTransition } from "react";
 import { deleteProject } from "@/app/actions/project-actions";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@repo/ui/components/alert-dialog";
-import Link from "next/link";
+import { Spinner } from "@repo/ui/src/components/spinner";
 
 interface ProjectCardProps {
   project: Project;
@@ -32,6 +38,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
+  const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -52,28 +59,27 @@ export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
     });
   };
 
+  const handleCardClick = () => {
+    router.push(`/${teamSlug}/${project.slug}`);
+  };
+
   return (
     <>
-      <Card className="group relative hover:shadow-md transition-shadow">
-        <Link href={`/${teamSlug}/${project.slug}`}>
-          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-            <div className="space-y-1 flex-1">
-              <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                {project.name}
-              </h3>
-              <p className="text-sm text-muted-foreground">{project.slug}</p>
-            </div>
-          </CardHeader>
-        </Link>
-        <CardContent className="pt-0">
+      <Card className="cursor-pointer " onClick={handleCardClick}>
+        <CardHeader>
+          <CardTitle>{project.name}</CardTitle>
+          <CardDescription>{project.slug}</CardDescription>
+        </CardHeader>
+
+        <CardContent>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              Created {new Date(project.createdAt).toLocaleDateString()}
+              Created: {new Date(project.createdAt).toLocaleDateString()}
             </p>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
+                <Button variant="ghost" size="icon">
+                  <MoreVertical />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -84,7 +90,7 @@ export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
                     setShowDeleteDialog(true);
                   }}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -98,7 +104,7 @@ export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the project "{project.name}". This
+              This will permanently delete the project {project.name}. This
               action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -109,7 +115,7 @@ export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
               disabled={isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isPending ? "Deleting..." : "Delete"}
+              {isPending ? <Spinner /> : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

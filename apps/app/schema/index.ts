@@ -7,6 +7,9 @@ const ACCEPTED_IMAGE_TYPES = [
   "image/png",
   "image/webp",
 ];
+const MAX_MODEL_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+const MAX_REQUIREMENTS_SIZE = 1024 * 1024; // 1MB
+const MAX_INFERENCE_SIZE = 512 * 1024; // 512KB
 
 export const teamSchema = z.object({
   name: z
@@ -20,6 +23,7 @@ export const teamSchema = z.object({
     .regex(/^[a-zA-Z\s]+$/, {
       message: "Team name must contain only alphabetic characters and spaces",
     }),
+
   image: z
     .any()
     .refine((file) => !file || file instanceof File, "Image must be a file")
@@ -48,3 +52,133 @@ export const projectSchema = z.object({
         "Project name must contain only alphanumeric characters and spaces",
     }),
 });
+
+export const endpointSchema = z
+  .object({
+    name: z
+      .string({ message: "Endpoint name is required" })
+      .min(3, {
+        message: "Endpoint name must be at least 3 characters",
+      })
+      .max(50, {
+        message: "Endpoint name must not be longer than 50 characters",
+      })
+      .regex(/^[a-zA-Z0-9\s-]+$/, {
+        message:
+          "Endpoint name must contain only alphanumeric characters, spaces, and hyphens",
+      }),
+
+    description: z
+      .string()
+      .max(500, {
+        message: "Description must not be longer than 500 characters",
+      })
+      .optional()
+      .or(z.literal("")),
+
+    // Model File - MANDATORY
+    modelFile: z
+      .any()
+      .refine((file) => file instanceof File, "Model file is required")
+      .refine((file) => file.size > 0, "Model file cannot be empty")
+      .refine(
+        (file) => file.size <= MAX_MODEL_SIZE,
+        `Max model size is ${MAX_MODEL_SIZE / 1024 / 1024 / 1024}GB`
+      )
+      .refine((file) => {
+        const extension = file.name.split(".").pop()?.toLowerCase();
+        return ["h5", "keras", "pt", "pth", "onnx", "pkl", "joblib"].includes(
+          extension || ""
+        );
+      }, "Supported formats: .h5, .keras (TensorFlow), .pt, .pth (PyTorch), .onnx (ONNX), .pkl, .joblib (Scikit-learn)"),
+
+    // Requirements.txt - MANDATORY
+    requirementsFile: z
+      .any()
+      .refine((file) => file instanceof File, "requirements.txt is required")
+      .refine((file) => file && file.size > 0, "requirements.txt cannot be empty")
+      .refine(
+        (file) => file && file.size <= MAX_REQUIREMENTS_SIZE,
+        `Max requirements.txt size is ${MAX_REQUIREMENTS_SIZE / 1024}KB`
+      )
+      .refine(
+        (file) => file && file.name === "requirements.txt",
+        "File must be named exactly 'requirements.txt'"
+      )
+      .refine(
+        (file) => file && (file.type === "text/plain" || file.type === ""),
+        "requirements.txt must be a text file"
+      ),
+
+    // Inference.py - OPTIONAL (auto-detected by backend)
+    inferenceFile: z
+      .any()
+      .optional()
+      .refine(
+        (file) => !file || file instanceof File,
+        "inference.py must be a valid file"
+      )
+      .refine(
+        (file) => !file || file.size > 0,
+        "inference.py cannot be empty"
+      )
+      .refine(
+        (file) => !file || file.size <= MAX_INFERENCE_SIZE,
+        `Max inference.py size is ${MAX_INFERENCE_SIZE / 1024}KB`
+      )
+      .refine(
+        (file) => !file || file.name === "inference.py",
+        "File must be named exactly 'inference.py'"
+      )
+      .refine(
+        (file) =>
+          !file ||
+          file.type === "text/x-python" ||
+          file.type === "application/x-python" ||
+          file.type === "text/plain" ||
+          file.type === "" ||
+          file.name.endsWith(".py"),
+        "inference.py must be a Python file"
+      ),
+
+    accessType: z.enum(["PUBLIC", "PRIVATE", "PAID"], {
+      message: "Please select an access type",
+    }),
+
+    inputType: z.enum(["JSON", "IMAGE", "TEXT", "AUDIO", "VIDEO", "FILE"], {
+      message: "Please select an input type",
+    }).default("JSON"),
+
+    pricePerRequest: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val || val === "") return true;
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      }, "Price per request must be a valid positive number"),
+
+    pricePerMonth: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val || val === "") return true;
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      }, "Monthly price must be a valid positive number"),
+  })
+  .refine(
+    (data) => {
+      if (data.accessType === "PAID") {
+        return (
+          (data.pricePerRequest && data.pricePerRequest !== "") ||
+          (data.pricePerMonth && data.pricePerMonth !== "")
+        );
+      }
+      return true;
+    },
+    {
+      message: "For paid endpoints, please specify at least one pricing option",
+      path: ["pricePerRequest"],
+    }
+  );

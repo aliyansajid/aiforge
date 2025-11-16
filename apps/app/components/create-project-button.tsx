@@ -15,7 +15,7 @@ export function CreateProjectButton({ teamId }: CreateProjectButtonProps) {
   return (
     <>
       <Button onClick={() => setIsDialogOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" />
+        <Plus />
         Create Project
       </Button>
 

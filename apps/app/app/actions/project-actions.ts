@@ -261,3 +261,108 @@ export async function deleteProject(
     };
   }
 }
+
+export interface ProjectWithEndpoints {
+  id: string;
+  name: string;
+  slug: string;
+  team: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  endpoints: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    framework: string;
+    inputType: string;
+    status: string;
+    accessType: string;
+    serviceUrl: string | null;
+    deployedAt: Date | null;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+  }>;
+}
+
+export async function getProjectWithEndpoints(
+  teamSlug: string,
+  projectSlug: string
+): Promise<ActionResponse<ProjectWithEndpoints>> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      message: "Please sign in to view this project.",
+      data: null,
+    };
+  }
+
+  try {
+    const project = await prisma.project.findFirst({
+      where: {
+        slug: projectSlug,
+        team: {
+          slug: teamSlug,
+          members: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        endpoints: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            framework: true,
+            inputType: true,
+            status: true,
+            accessType: true,
+            serviceUrl: true,
+            deployedAt: true,
+            createdAt: true,
+            lastUsedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      return {
+        success: false,
+        message: "Project not found or you don't have access.",
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: "Project fetched successfully.",
+      data: project,
+    };
+  } catch (error) {
+    console.error("Error fetching project with endpoints:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred while fetching the project.",
+      data: null,
+    };
+  }
+}

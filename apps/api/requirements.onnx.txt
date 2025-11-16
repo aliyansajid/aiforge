@@ -1,0 +1,22 @@
+# Minimal requirements for ONNX models (smallest image size)
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Google Cloud
+google-cloud-storage==2.14.0
+google-auth==2.25.2
+
+# ONNX Runtime (lightweight!)
+onnxruntime==1.16.3
+
+# Utilities
+python-multipart==0.0.6
+pillow==10.1.0
+numpy==1.26.2
+aiofiles==23.2.1
+requests==2.31.0
+
+# Security
+python-jose[cryptography]==3.3.0
