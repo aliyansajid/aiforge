@@ -107,3 +107,45 @@ async def model_info(api_key: str = Depends(verify_api_key)):
         "framework": model_loader.framework,
         "status": "ready",
     }
+
+
+@router.get("/debug")
+async def debug_info(api_key: str = Depends(verify_api_key)):
+    """
+    Debug endpoint to check model loading state and file system.
+    """
+    import os
+    import glob
+
+    debug_data = {
+        "model_loader_exists": model_loader is not None,
+        "model_exists": model_loader.model is not None if model_loader else False,
+        "model_path": model_loader.model_path if model_loader else None,
+        "framework": model_loader.framework if model_loader else None,
+        "user_model_dir_exists": os.path.exists("/app/user_model"),
+        "user_model_files": [],
+        "all_files_in_user_model": [],
+    }
+
+    # List all files in /app/user_model
+    if os.path.exists("/app/user_model"):
+        try:
+            for root, dirs, files in os.walk("/app/user_model"):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    debug_data["all_files_in_user_model"].append({
+                        "path": full_path,
+                        "size": os.path.getsize(full_path),
+                        "exists": os.path.exists(full_path),
+                    })
+        except Exception as e:
+            debug_data["file_listing_error"] = str(e)
+
+    # Search for model files
+    model_extensions = [".pkl", ".pt", ".pth", ".h5", ".onnx", ".joblib", ".keras"]
+    for ext in model_extensions:
+        matches = glob.glob(f"/app/user_model/**/*{ext}", recursive=True)
+        if matches:
+            debug_data["user_model_files"].extend(matches)
+
+    return debug_data
