@@ -50,13 +50,10 @@ logs/
 .env.local
 .env.*.local
 
-# Downloaded models (we download from GCS at runtime)
-models/
-*.pt
-*.pth
-*.h5
-*.pkl
-*.onnx
+# NOTE: Model files are NOT ignored here
+# For ZIP/Git deployments, model files MUST be included in the Docker image
+# They are copied to /app/user_model/ during the build
+# For single-file deployments, models are downloaded from GCS at runtime
 
 # Build artifacts
 build/

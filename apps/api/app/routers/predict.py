@@ -71,6 +71,16 @@ async def health_check():
     """
     model_loaded = model_loader is not None and model_loader.model is not None
 
+    # Enhanced debugging info
+    debug_info = {
+        "model_loader_exists": model_loader is not None,
+        "model_object_exists": model_loader.model is not None if model_loader else False,
+        "model_path": model_loader.model_path if model_loader else None,
+        "framework": model_loader.framework if model_loader else None,
+    }
+
+    logger.info(f"Health check - Debug info: {debug_info}")
+
     return HealthResponse(
         status="healthy" if model_loaded else "initializing",
         model_loaded=model_loaded,
