@@ -133,7 +133,13 @@ async def lifespan(app: FastAPI):
         import traceback
         logger.error(f"❌ Failed to load model: {e}")
         logger.error(f"Traceback:\n{traceback.format_exc()}")
-        logger.warning("API will start without a loaded model.")
+
+        # For ZIP/Git deployments, model MUST load - fail startup if it doesn't
+        if not settings.download_model_on_startup:
+            logger.critical("Model loading failed for baked-in deployment. Service cannot start.")
+            raise RuntimeError(f"Model loading failed: {e}") from e
+        else:
+            logger.warning("API will start without a loaded model (GCS download mode).")
 
     yield
 
