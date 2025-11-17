@@ -571,7 +571,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
     ca-certificates \\
     && rm -rf /var/lib/apt/lists/*
 
-# Install base dependencies
+# Copy user's model package and requirements FIRST
+COPY model_package/ /app/user_model/
+COPY requirements.txt /tmp/user-requirements.txt
+
+# Install user's dependencies first (this controls numpy, sklearn versions)
+RUN if [ -s /tmp/user-requirements.txt ]; then \\
+      echo "Installing user requirements..." && \\
+      cat /tmp/user-requirements.txt && \\
+      pip install --no-cache-dir -r /tmp/user-requirements.txt; \\
+    else \\
+      echo "No user requirements, installing default framework dependencies" && \\
+      pip install --no-cache-dir ${deps}; \\
+    fi
+
+# Install base API dependencies (without version conflicts)
 RUN pip install --no-cache-dir \\
     fastapi==0.104.1 \\
     uvicorn[standard]==0.24.0 \\
@@ -580,27 +594,14 @@ RUN pip install --no-cache-dir \\
     google-cloud-storage==2.14.0 \\
     google-auth==2.25.2 \\
     python-multipart==0.0.6 \\
-    numpy==1.26.2 \\
     aiofiles==23.2.1 \\
     python-json-logger==2.0.7
-
-# Install framework-specific dependencies
-RUN pip install --no-cache-dir ${deps}
 
 # Verify framework is installed
 RUN python3 -c "import ${framework === 'sklearn' ? 'sklearn' : framework}; print('✅ ${framework} installed successfully')"
 
 # Copy FastAPI app
 COPY app/ /app/app/
-
-# Copy user's model package (all files)
-COPY model_package/ /app/user_model/
-
-# Install user's additional dependencies (if any)
-COPY requirements.txt /tmp/requirements.txt
-RUN if [ -s /tmp/requirements.txt ]; then \\
-      pip install --no-cache-dir -r /tmp/requirements.txt; \\
-    fi
 
 # Add user model to Python path
 ENV PYTHONPATH="\${PYTHONPATH}:/app/user_model"
