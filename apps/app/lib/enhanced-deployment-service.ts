@@ -587,6 +587,9 @@ RUN pip install --no-cache-dir \\
 # Install framework-specific dependencies
 RUN pip install --no-cache-dir ${deps}
 
+# Verify framework is installed
+RUN python3 -c "import ${framework === 'sklearn' ? 'sklearn' : framework}; print(f'✅ {framework} installed successfully')"
+
 # Copy FastAPI app
 COPY app/ /app/app/
 
