@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     # Model Configuration
     model_id: str = ""
     model_path: str = ""
-    download_model_on_startup: bool = True
+    download_model_on_startup: bool = False  # Default to False for ZIP/Git deployments
+    custom_inference_path: str = ""
 
     # API Security
     api_key: str = "dev-api-key-change-in-production"

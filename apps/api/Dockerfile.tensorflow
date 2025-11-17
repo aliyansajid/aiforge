@@ -1,0 +1,15 @@
+# ================================
+# TensorFlow CPU-Only Image
+# Size: ~650MB
+# ================================
+ARG PROJECT_ID
+ARG REGION=us-central1
+
+FROM ${REGION}-docker.pkg.dev/${PROJECT_ID}/aiforge/base:latest
+
+# Install TensorFlow CPU-only
+RUN pip install --no-cache-dir \
+    tensorflow-cpu==2.15.0 \
+    pillow==10.1.0
+
+CMD uvicorn app.main:app --host ${HOST} --port ${PORT}

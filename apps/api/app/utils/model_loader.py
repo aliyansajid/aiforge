@@ -16,25 +16,45 @@ class ModelLoader:
     - TensorFlow (.h5, SavedModel)
     - ONNX (.onnx)
     - Scikit-learn (.pkl)
+    - Custom inference scripts (inference.py)
     """
 
     def __init__(self):
         self.model = None
         self.framework = None
         self.model_path = None
+        self.custom_inference = None
+        self.use_custom_inference = False
 
-    def load_model(self, model_path: str, framework: Optional[str] = None) -> Any:
+    def load_model(self, model_path: str, framework: Optional[str] = None, custom_inference_path: Optional[str] = None) -> Any:
         """
         Load model from file. Auto-detects framework if not specified.
 
         Args:
             model_path: Path to model file or directory
             framework: Optional framework hint ("pytorch", "tensorflow", "onnx", "sklearn")
+            custom_inference_path: Optional path to custom inference.py
 
         Returns:
             Loaded model object
         """
         self.model_path = model_path
+
+        # Check for custom inference script
+        if custom_inference_path and os.path.exists(custom_inference_path):
+            logger.info(f"Loading custom inference script from {custom_inference_path}")
+            self.custom_inference = self._load_custom_inference(custom_inference_path)
+            self.use_custom_inference = True
+
+            # Still load the model using custom script
+            if hasattr(self.custom_inference, 'load_model'):
+                self.model = self.custom_inference.load_model(model_path)
+                self.framework = "custom"
+                logger.info("Model loaded using custom inference script")
+                return self.model
+            else:
+                logger.warning("Custom inference.py found but no load_model() function. Falling back to default loading.")
+                self.use_custom_inference = False
 
         # Auto-detect framework from file extension
         if framework is None:
@@ -131,6 +151,20 @@ class ModelLoader:
         except Exception as e:
             raise ValueError(f"Failed to load sklearn model: {e}")
 
+    def _load_custom_inference(self, inference_path: str) -> Any:
+        """Load custom inference.py module dynamically."""
+        try:
+            spec = importlib.util.spec_from_file_location("custom_inference", inference_path)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not load spec from {inference_path}")
+
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        except Exception as e:
+            logger.error(f"Failed to load custom inference script: {e}")
+            raise
+
     def predict(self, input_data: Any) -> Any:
         """
         Run inference on input data.
@@ -144,6 +178,11 @@ class ModelLoader:
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
 
+        # Use custom inference if available
+        if self.use_custom_inference and hasattr(self.custom_inference, 'predict'):
+            logger.info("Using custom predict() function")
+            return self.custom_inference.predict(self.model, input_data)
+
         # Framework-specific inference
         if self.framework == "pytorch":
             return self._predict_pytorch(input_data)
@@ -153,6 +192,9 @@ class ModelLoader:
             return self._predict_onnx(input_data)
         elif self.framework == "sklearn":
             return self._predict_sklearn(input_data)
+        elif self.framework == "custom":
+            # Custom framework but no custom predict - should not happen
+            raise ValueError("Custom model loaded but no predict() function found in inference.py")
 
     def _predict_pytorch(self, input_data: Any) -> Any:
         """PyTorch inference."""
@@ -198,12 +240,22 @@ class ModelLoader:
         """Scikit-learn inference."""
         import numpy as np
 
-        # For image data (base64 strings), pass directly to model
-        # This allows image models to handle base64 encoding internally
+        # For single text string, wrap in list
         if isinstance(input_data, str):
             return self.model.predict([input_data])
+
+        # For list of strings (text data), pass directly to model
+        # Don't convert to numpy array as this breaks text pipelines
         elif isinstance(input_data, list) and len(input_data) > 0 and isinstance(input_data[0], str):
             return self.model.predict(input_data)
+
+        # For nested list of strings [[text1], [text2]], flatten first
+        elif isinstance(input_data, list) and len(input_data) > 0 and isinstance(input_data[0], list):
+            # Check if it's a list of text arrays
+            if len(input_data[0]) > 0 and isinstance(input_data[0][0], str):
+                # Flatten: [[text1], [text2]] -> [text1, text2]
+                flattened = [item[0] if isinstance(item, list) and len(item) > 0 else item for item in input_data]
+                return self.model.predict(flattened)
 
         # For numeric data, convert to numpy array
         if not isinstance(input_data, np.ndarray):

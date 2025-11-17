@@ -1,0 +1,16 @@
+# ================================
+# Scikit-learn Image
+# Size: ~180MB
+# ================================
+ARG PROJECT_ID
+ARG REGION=us-central1
+
+FROM ${REGION}-docker.pkg.dev/${PROJECT_ID}/aiforge/base:latest
+
+# Install scikit-learn and common ML utilities
+RUN pip install --no-cache-dir \
+    scikit-learn==1.3.2 \
+    pillow==10.1.0 \
+    joblib==1.3.2
+
+CMD uvicorn app.main:app --host ${HOST} --port ${PORT}

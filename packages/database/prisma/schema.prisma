@@ -209,9 +209,22 @@ model Endpoint {
   framework String
   inputType InputType @default(JSON)
 
-  gcsModelPath        String
-  gcsRequirementsPath String
-  gcsInferencePath    String
+  // Deployment source type
+  deploymentType DeploymentType @default(SINGLE_FILE)
+
+  // Single file deployment (legacy)
+  gcsModelPath        String?
+  gcsRequirementsPath String?
+  gcsInferencePath    String?
+
+  // ZIP archive deployment
+  gcsArchivePath String?
+
+  // GitHub repository deployment
+  gitRepoUrl    String?
+  gitBranch     String?
+  gitCommitSha  String?
+  gitAccessToken String? // Encrypted token for private repos
 
   imageUri   String?
   serviceUrl String?
@@ -246,6 +259,7 @@ model Endpoint {
   @@index([apiKey])
   @@index([createdBy])
   @@index([accessType])
+  @@index([deploymentType])
 }
 
 model ApiUsage {
@@ -325,4 +339,10 @@ enum InputType {
   AUDIO     // Audio file (MP3, WAV, etc.)
   VIDEO     // Video file (MP4, AVI, etc.)
   FILE      // Generic file upload
+}
+
+enum DeploymentType {
+  SINGLE_FILE     // Legacy: single model file + requirements.txt
+  ZIP_ARCHIVE     // ZIP file containing model + dependencies + custom code
+  GIT_REPOSITORY  // GitHub/GitLab repository
 }

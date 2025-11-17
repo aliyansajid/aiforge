@@ -7,9 +7,19 @@ export async function createEndpoint(data: {
   userId: string;
   accessType: string;
   inputType: string;
-  modelFile: File;
-  requirementsFile: File;
-  inferenceFile?: File; // OPTIONAL: backend auto-detects framework
+  deploymentType?: string;
+  // Single file deployment
+  modelFile?: File;
+  requirementsFile?: File;
+  inferenceFile?: File;
+  // ZIP deployment
+  archiveFile?: File;
+  // Git deployment
+  gitRepoUrl?: string;
+  gitBranch?: string;
+  gitCommit?: string;
+  gitAccessToken?: string;
+  // Pricing
   pricePerRequest?: string;
   pricePerMonth?: string;
 }) {
@@ -22,14 +32,36 @@ export async function createEndpoint(data: {
   formData.append("userId", data.userId);
   formData.append("accessType", data.accessType);
   formData.append("inputType", data.inputType);
+  formData.append("deploymentType", data.deploymentType || "SINGLE_FILE");
 
-  // Files - modelFile and requirementsFile are mandatory
-  formData.append("modelFile", data.modelFile);
-  formData.append("requirementsFile", data.requirementsFile);
-
-  // inferenceFile is optional
+  // Single file deployment
+  if (data.modelFile) {
+    formData.append("modelFile", data.modelFile);
+  }
+  if (data.requirementsFile) {
+    formData.append("requirementsFile", data.requirementsFile);
+  }
   if (data.inferenceFile) {
     formData.append("inferenceFile", data.inferenceFile);
+  }
+
+  // ZIP deployment
+  if (data.archiveFile) {
+    formData.append("archiveFile", data.archiveFile);
+  }
+
+  // Git deployment
+  if (data.gitRepoUrl) {
+    formData.append("gitRepoUrl", data.gitRepoUrl);
+  }
+  if (data.gitBranch) {
+    formData.append("gitBranch", data.gitBranch);
+  }
+  if (data.gitCommit) {
+    formData.append("gitCommit", data.gitCommit);
+  }
+  if (data.gitAccessToken) {
+    formData.append("gitAccessToken", data.gitAccessToken);
   }
 
   // Pricing (optional, only for PAID endpoints)

@@ -1,0 +1,31 @@
+# ================================
+# Base Image - Common Dependencies
+# Size: ~150MB
+# ================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install base Python dependencies
+COPY base-requirements.txt .
+RUN pip install --no-cache-dir -r base-requirements.txt && \
+    rm base-requirements.txt
+
+# Copy FastAPI application code
+COPY app /app/app
+
+# Environment variables
+ENV PORT=8080
+ENV HOST=0.0.0.0
+ENV PYTHONUNBUFFERED=1
+
+# Create directory for models
+RUN mkdir -p /tmp/models /app/user_model
+
+EXPOSE 8080

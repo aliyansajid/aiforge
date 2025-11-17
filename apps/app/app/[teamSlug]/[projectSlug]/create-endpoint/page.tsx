@@ -38,6 +38,9 @@ const CreateEndpoint = () => {
   const [modelFileName, setModelFileName] = useState<string>("");
   const [requirementsFileName, setRequirementsFileName] = useState<string>("");
   const [inferenceFileName, setInferenceFileName] = useState<string>("");
+  const [deploymentType, setDeploymentType] = useState<
+    "single" | "zip" | "git"
+  >("single");
 
   const form = useForm<z.infer<typeof endpointSchema>>({
     resolver: zodResolver(endpointSchema),
@@ -48,6 +51,11 @@ const CreateEndpoint = () => {
       inputType: "JSON",
       pricePerRequest: "",
       pricePerMonth: "",
+      deploymentType: "SINGLE_FILE",
+      gitRepoUrl: "",
+      gitBranch: "",
+      gitCommit: "",
+      gitAccessToken: "",
     },
   });
 
@@ -91,7 +99,7 @@ const CreateEndpoint = () => {
 
       const { projectId, userId } = contextResult.data;
 
-      // Call Python API
+      // Call API with deployment type-specific data
       const result = await createEndpoint({
         name: data.name,
         description: data.description,
@@ -99,9 +107,19 @@ const CreateEndpoint = () => {
         userId,
         accessType: data.accessType,
         inputType: data.inputType,
+        deploymentType: data.deploymentType,
+        // Single file deployment
         modelFile: data.modelFile,
         requirementsFile: data.requirementsFile,
         inferenceFile: data.inferenceFile,
+        // ZIP deployment
+        archiveFile: data.archiveFile,
+        // Git deployment
+        gitRepoUrl: data.gitRepoUrl,
+        gitBranch: data.gitBranch,
+        gitCommit: data.gitCommit,
+        gitAccessToken: data.gitAccessToken,
+        // Pricing
         pricePerRequest: data.pricePerRequest,
         pricePerMonth: data.pricePerMonth,
       });
@@ -207,42 +225,168 @@ const CreateEndpoint = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Upload Model Files</CardTitle>
+              <CardTitle>Upload Model</CardTitle>
               <CardDescription>
-                Model file and requirements.txt are required. Inference file is
-                optional.
+                Choose how you want to deploy your model
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <CustomFormField
-                control={form.control}
-                fieldType={FormFieldType.INPUT}
-                inputType="file"
-                name="modelFile"
-                label="Model File"
-                accept=".h5,.keras,.pt,.pth,.onnx,.pkl,.joblib"
-                disabled={isSubmitting}
-              />
+              {/* Deployment Type Selector */}
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={deploymentType === "single" ? "default" : "outline"}
+                  onClick={() => {
+                    setDeploymentType("single");
+                    form.setValue("deploymentType", "SINGLE_FILE");
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  Single Files
+                </Button>
+                <Button
+                  type="button"
+                  variant={deploymentType === "zip" ? "default" : "outline"}
+                  onClick={() => {
+                    setDeploymentType("zip");
+                    form.setValue("deploymentType", "ZIP_ARCHIVE");
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  ZIP Archive
+                </Button>
+                <Button
+                  type="button"
+                  variant={deploymentType === "git" ? "default" : "outline"}
+                  onClick={() => {
+                    setDeploymentType("git");
+                    form.setValue("deploymentType", "GIT_REPOSITORY");
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  GitHub Repo
+                </Button>
+              </div>
 
-              <CustomFormField
-                control={form.control}
-                fieldType={FormFieldType.INPUT}
-                inputType="file"
-                name="requirementsFile"
-                label="requirements.txt"
-                accept=".txt"
-                disabled={isSubmitting}
-              />
+              {/* Single File Upload */}
+              {deploymentType === "single" && (
+                <div className="space-y-6">
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="file"
+                    name="modelFile"
+                    label="Model File"
+                    accept=".h5,.keras,.pt,.pth,.onnx,.pkl,.joblib"
+                    disabled={isSubmitting}
+                  />
 
-              <CustomFormField
-                control={form.control}
-                fieldType={FormFieldType.INPUT}
-                inputType="file"
-                name="inferenceFile"
-                label="inference.py (Optional)"
-                accept=".py"
-                disabled={isSubmitting}
-              />
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="file"
+                    name="requirementsFile"
+                    label="requirements.txt"
+                    accept=".txt"
+                    disabled={isSubmitting}
+                  />
+
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="file"
+                    name="inferenceFile"
+                    label="inference.py (Optional)"
+                    accept=".py"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
+
+              {/* ZIP Archive Upload */}
+              {deploymentType === "zip" && (
+                <div className="space-y-4">
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="file"
+                    name="archiveFile"
+                    label="ZIP Archive"
+                    accept=".zip"
+                    disabled={isSubmitting}
+                  />
+                  <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
+                    <p className="font-medium mb-2">ZIP should contain:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>Model file(s): .pkl, .pt, .h5, .onnx, etc.</li>
+                      <li>requirements.txt (optional)</li>
+                      <li>inference.py (optional for custom logic)</li>
+                      <li>Any utils, libs, or custom Python files</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* GitHub Repository */}
+              {deploymentType === "git" && (
+                <div className="space-y-4">
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="text"
+                    name="gitRepoUrl"
+                    label="Repository URL"
+                    placeholder="https://github.com/username/repo"
+                    disabled={isSubmitting}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomFormField
+                      control={form.control}
+                      fieldType={FormFieldType.INPUT}
+                      inputType="text"
+                      name="gitBranch"
+                      label="Branch (Optional)"
+                      placeholder="main"
+                      disabled={isSubmitting}
+                    />
+
+                    <CustomFormField
+                      control={form.control}
+                      fieldType={FormFieldType.INPUT}
+                      inputType="text"
+                      name="gitCommit"
+                      label="Commit SHA (Optional)"
+                      placeholder="abc123..."
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <CustomFormField
+                    control={form.control}
+                    fieldType={FormFieldType.INPUT}
+                    inputType="password"
+                    name="gitAccessToken"
+                    label="Access Token (for private repos)"
+                    placeholder="ghp_xxxxx..."
+                    disabled={isSubmitting}
+                  />
+
+                  <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
+                    <p className="font-medium mb-2">
+                      Repository should contain:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>Model file(s) in any directory</li>
+                      <li>requirements.txt or setup.py</li>
+                      <li>inference.py (optional)</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
