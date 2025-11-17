@@ -429,7 +429,7 @@ export class EnhancedDeploymentService {
 
     // Framework-specific dependencies
     const frameworkDeps: Record<string, string> = {
-      sklearn: "scikit-learn==1.3.2\njoblib==1.3.2",
+      sklearn: "scikit-learn>=1.3.2\njoblib>=1.3.2",
       pytorch:
         "torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu\ntorchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu",
       tensorflow: "tensorflow-cpu==2.15.0",
@@ -548,7 +548,7 @@ docker-compose*.yml
     // TODO: Build base images using apps/api/scripts/build-base-images.sh
 
     const frameworkDeps: Record<string, string> = {
-      sklearn: "scikit-learn==1.3.2 joblib==1.3.2",
+      sklearn: "\"scikit-learn>=1.3.2\" \"joblib>=1.3.2\"",
       pytorch:
         "torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu",
       tensorflow: "tensorflow-cpu==2.15.0",
