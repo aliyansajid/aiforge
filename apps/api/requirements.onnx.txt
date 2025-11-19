@@ -8,14 +8,14 @@ pydantic-settings==2.1.0
 google-cloud-storage==2.14.0
 google-auth==2.25.2
 
-# ONNX Runtime (lightweight!)
-onnxruntime==1.16.3
+# ONNX Runtime (lightweight!) - use >= to allow user requirements to override
+onnxruntime>=1.16.0
 
 # Utilities
 python-multipart==0.0.6
 pillow==10.1.0
-numpy==1.26.2
 aiofiles==23.2.1
+# Note: numpy installed via user requirements or onnxruntime dependencies
 requests==2.31.0
 
 # Security

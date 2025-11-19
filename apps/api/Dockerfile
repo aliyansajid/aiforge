@@ -51,9 +51,10 @@ RUN mkdir -p /tmp/models
 # Expose port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8080/health', timeout=2)" || exit 1
+# Health check - Use curl instead of requests (lighter and always available)
+# Disabled for Cloud Run since it has its own health checks
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+#     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=2)" || exit 1
 
 # Run the application
 CMD uvicorn app.main:app --host ${HOST} --port ${PORT}

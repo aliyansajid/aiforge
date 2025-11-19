@@ -1,0 +1,30 @@
+{
+  "name": "Movie Review Sentiment Classifier",
+  "version": "1.0.0",
+  "framework": "sklearn",
+  "description": "Advanced sentiment analysis model for movie reviews with custom preprocessing pipeline and feature engineering",
+  "author": "AIForge Team",
+  "tags": ["sentiment-analysis", "nlp", "movie-reviews", "classification", "sklearn"],
+
+  "entry_point": "inference.py",
+  "entry_point_type": "module",
+
+  "load": {
+    "name": "load_model",
+    "args": ["model_path"]
+  },
+
+  "predict": {
+    "name": "predict",
+    "args": ["input_data"]
+  },
+
+  "model_file": "model.pkl",
+
+  "auxiliary_files": [
+    "vectorizer.pkl",
+    "label_encoder.pkl",
+    "preprocessing_config.json",
+    "metadata.json"
+  ]
+}

@@ -14,6 +14,7 @@ import {
   SidebarTrigger,
 } from "@repo/ui/components/sidebar";
 import { getUserTeams } from "@/app/actions/team-actions";
+import { getTeamProjects } from "@/app/actions/project-actions";
 import { notFound } from "next/navigation";
 
 interface TeamLayoutProps {
@@ -40,9 +41,18 @@ export default async function TeamLayout({
     notFound();
   }
 
+  // Fetch projects for sidebar
+  const projectsResult = await getTeamProjects(resolvedParams.teamSlug);
+  const projects = projectsResult.data ?? [];
+
   return (
     <SidebarProvider>
-      <AppSidebar teams={teams} currentTeamSlug={resolvedParams.teamSlug} />
+      <AppSidebar
+        teams={teams}
+        currentTeamSlug={resolvedParams.teamSlug}
+        projects={projects}
+        currentUserRole={currentTeam.role}
+      />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
@@ -53,11 +63,13 @@ export default async function TeamLayout({
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+                <BreadcrumbLink href={`/${resolvedParams.teamSlug}`}>
+                  {currentTeam.name}
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                <BreadcrumbPage>Projects</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

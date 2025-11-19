@@ -1,19 +1,16 @@
 "use client";
 
 import {
-  BookOpen,
-  Bot,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
+  LayoutDashboard,
+  Boxes,
   Settings2,
-  SquareTerminal,
+  Users,
+  BarChart3,
+  Activity,
+  CreditCard,
 } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -23,135 +20,21 @@ import {
 } from "@repo/ui/components/sidebar";
 import { useSession } from "@repo/auth";
 import { TeamSwitcher } from "@/components/team-switcher";
-import { Team } from "@/types";
-
-const data = {
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-};
+import { Team, Project } from "@/types";
+import { getPermissions, type TeamRole } from "@/lib/rbac";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   teams: Team[];
   currentTeamSlug: string;
+  projects: Project[];
+  currentUserRole?: string;
 }
 
 export function AppSidebar({
   teams,
   currentTeamSlug,
+  projects,
+  currentUserRole = "MEMBER",
   ...props
 }: AppSidebarProps) {
   const { data: session } = useSession();
@@ -162,15 +45,85 @@ export function AppSidebar({
     avatar: session?.user?.image || "https://github.com/shadcn.png",
   };
 
+  // Get permissions based on role
+  const permissions = getPermissions(currentUserRole as TeamRole);
+
+  // Build navigation items with RBAC
+  const navMain = [
+    {
+      title: "Dashboard",
+      url: `/${currentTeamSlug}/dashboard`,
+      icon: LayoutDashboard,
+      isActive: true,
+    },
+    {
+      title: "Projects",
+      url: `/${currentTeamSlug}`,
+      icon: Boxes,
+    },
+    {
+      title: "Analytics",
+      url: `/${currentTeamSlug}/analytics/usage`,
+      icon: BarChart3,
+      items: [
+        {
+          title: "Usage",
+          url: `/${currentTeamSlug}/analytics/usage`,
+        },
+        {
+          title: "Performance",
+          url: `/${currentTeamSlug}/analytics/performance`,
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      url: `/${currentTeamSlug}/settings/general`,
+      icon: Settings2,
+      items: [
+        ...(permissions.canUpdateTeamSettings
+          ? [
+              {
+                title: "General",
+                url: `/${currentTeamSlug}/settings/general`,
+              },
+            ]
+          : []),
+        ...(permissions.canInviteMembers
+          ? [
+              {
+                title: "Team Members",
+                url: `/${currentTeamSlug}/settings/members`,
+              },
+            ]
+          : []),
+        ...(permissions.canViewBilling
+          ? [
+              {
+                title: "Billing",
+                url: `/${currentTeamSlug}/settings/billing`,
+              },
+            ]
+          : []),
+      ],
+    },
+  ];
+
+  // Transform projects to match NavProjects format
+  const sidebarProjects = projects.map((project) => ({
+    name: project.name,
+    url: `/${currentTeamSlug}/${project.slug}`,
+    icon: Boxes,
+  }));
+
   return (
     <Sidebar collapsible="icon" variant="sidebar" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={teams} currentTeamSlug={currentTeamSlug} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavProjects projects={sidebarProjects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

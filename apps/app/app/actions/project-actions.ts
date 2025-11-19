@@ -45,6 +45,13 @@ export async function getTeamProjects(
       where: {
         teamId: team.id,
       },
+      include: {
+        _count: {
+          select: {
+            endpoints: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },

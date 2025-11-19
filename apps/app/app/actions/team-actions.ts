@@ -103,6 +103,159 @@ async function uploadFileToGCS(file: File, teamSlug: string): Promise<string> {
   }
 }
 
+export async function updateTeamSettings(data: {
+  teamSlug: string;
+  name: string;
+  slug: string;
+  avatarFile: File | null;
+}): Promise<ActionResponse<Team>> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      message: "Please sign in to update team settings",
+      data: null,
+    };
+  }
+
+  try {
+    // Verify user has permission (Owner or Admin)
+    const teamMember = await prisma.teamMember.findFirst({
+      where: {
+        userId: session.user.id,
+        team: {
+          slug: data.teamSlug,
+        },
+        role: {
+          in: ["OWNER", "ADMIN"],
+        },
+      },
+      include: {
+        team: true,
+      },
+    });
+
+    if (!teamMember) {
+      return {
+        success: false,
+        message: "You don't have permission to update team settings",
+        data: null,
+      };
+    }
+
+    const updates: {
+      name?: string;
+      slug?: string;
+      image?: string;
+    } = {};
+
+    // Validate and update name
+    if (data.name && data.name !== teamMember.team.name) {
+      if (data.name.trim().length < 2) {
+        return {
+          success: false,
+          message: "Team name must be at least 2 characters long",
+          data: null,
+        };
+      }
+      updates.name = data.name.trim();
+    }
+
+    // Validate and update slug
+    if (data.slug && data.slug !== teamMember.team.slug) {
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      if (!slugRegex.test(data.slug)) {
+        return {
+          success: false,
+          message:
+            "Team slug can only contain lowercase letters, numbers, and hyphens",
+          data: null,
+        };
+      }
+
+      // Check if slug is already taken
+      const existingTeam = await prisma.team.findUnique({
+        where: { slug: data.slug },
+      });
+
+      if (existingTeam && existingTeam.id !== teamMember.team.id) {
+        return {
+          success: false,
+          message: "This slug is already taken. Please choose another one",
+          data: null,
+        };
+      }
+
+      updates.slug = data.slug;
+    }
+
+    // Handle avatar upload
+    if (data.avatarFile) {
+      try {
+        const imageUrl = await uploadFileToGCS(
+          data.avatarFile,
+          data.slug || teamMember.team.slug
+        );
+        updates.image = imageUrl;
+      } catch (error) {
+        console.error("Error uploading team avatar:", error);
+        return {
+          success: false,
+          message: "Failed to upload team avatar. Please try again",
+          data: null,
+        };
+      }
+    }
+
+    // If no updates, return early
+    if (Object.keys(updates).length === 0) {
+      return {
+        success: true,
+        message: "No changes to save",
+        data: {
+          id: teamMember.team.id,
+          name: teamMember.team.name,
+          slug: teamMember.team.slug,
+          image: teamMember.team.image,
+          role: teamMember.role,
+        },
+      };
+    }
+
+    // Update team
+    const updatedTeam = await prisma.team.update({
+      where: { id: teamMember.teamId },
+      data: updates,
+    });
+
+    // Revalidate relevant paths
+    revalidatePath(`/${teamMember.team.slug}/settings/general`);
+    if (updates.slug) {
+      revalidatePath(`/${updates.slug}/settings/general`);
+    }
+
+    return {
+      success: true,
+      message: "Team settings updated successfully",
+      data: {
+        id: updatedTeam.id,
+        name: updatedTeam.name,
+        slug: updatedTeam.slug,
+        image: updatedTeam.image,
+        role: teamMember.role,
+      },
+    };
+  } catch (error) {
+    console.error("Error updating team settings:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred while updating team settings",
+      data: null,
+    };
+  }
+}
+
 export async function createTeam(
   formData: FormData
 ): Promise<ActionResponse<Team>> {

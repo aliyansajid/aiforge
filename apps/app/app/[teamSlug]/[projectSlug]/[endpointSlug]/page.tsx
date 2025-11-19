@@ -21,11 +21,12 @@ import {
 } from "@repo/ui/components/tabs";
 import { Alert, AlertDescription } from "@repo/ui/components/alert";
 import { Spinner } from "@repo/ui/components/spinner";
-import { Brain, Copy, Play, AlertCircle, Code, Zap, Key } from "lucide-react";
+import { Brain, Copy, Play, AlertCircle, Code, Zap, Key, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { DynamicInput } from "@/components/dynamic-input";
+import { MetricsDashboard } from "@/components/metrics/metrics-dashboard";
 import {
-  getEndpointDetails,
+  getEndpointBySlug,
   type EndpointDetails,
 } from "@/app/actions/endpoint-actions";
 
@@ -44,7 +45,11 @@ export default function EndpointPlaygroundPage() {
   }, []);
 
   const loadEndpoint = async () => {
-    const result = await getEndpointDetails(params.endpointId as string);
+    const result = await getEndpointBySlug(
+      params.teamSlug as string,
+      params.projectSlug as string,
+      params.endpointSlug as string
+    );
 
     if (result.success && result.data) {
       setEndpoint(result.data);
@@ -218,15 +223,19 @@ export default function EndpointPlaygroundPage() {
       <Tabs defaultValue="playground">
         <TabsList>
           <TabsTrigger value="playground">
-            <Play />
+            <Play className="h-4 w-4" />
             Playground
           </TabsTrigger>
+          <TabsTrigger value="metrics">
+            <Activity className="h-4 w-4" />
+            Metrics
+          </TabsTrigger>
           <TabsTrigger value="docs">
-            <Code />
+            <Code className="h-4 w-4" />
             API Docs
           </TabsTrigger>
           <TabsTrigger value="settings">
-            <Key />
+            <Key className="h-4 w-4" />
             Settings
           </TabsTrigger>
         </TabsList>
@@ -265,7 +274,7 @@ export default function EndpointPlaygroundPage() {
                     </>
                   ) : (
                     <>
-                      <Play />
+                      <Play className="h-4 w-4" />
                       Run Prediction
                     </>
                   )}
@@ -273,7 +282,7 @@ export default function EndpointPlaygroundPage() {
 
                 {endpoint.status !== "DEPLOYED" && (
                   <Alert>
-                    <AlertCircle />
+                    <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       Endpoint must be deployed before testing
                     </AlertDescription>
@@ -282,7 +291,7 @@ export default function EndpointPlaygroundPage() {
 
                 {!endpoint.serviceUrl && endpoint.status === "DEPLOYED" && (
                   <Alert>
-                    <AlertCircle />
+                    <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       Service URL not available yet
                     </AlertDescription>
@@ -339,7 +348,7 @@ export default function EndpointPlaygroundPage() {
 
                 {error && (
                   <Alert variant="destructive">
-                    <AlertCircle />
+                    <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
@@ -353,6 +362,10 @@ export default function EndpointPlaygroundPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="metrics">
+          <MetricsDashboard />
         </TabsContent>
 
         <TabsContent value="docs">
@@ -383,7 +396,7 @@ export default function EndpointPlaygroundPage() {
                     }}
                     disabled={!endpoint.serviceUrl}
                   >
-                    <Copy />
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -398,7 +411,7 @@ export default function EndpointPlaygroundPage() {
                         size="sm"
                         onClick={copyCurlCommand}
                       >
-                        <Copy />
+                        <Copy className="h-4 w-4" />
                         Copy
                       </Button>
                     </div>

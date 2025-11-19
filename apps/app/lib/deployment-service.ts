@@ -88,11 +88,11 @@ export class DeploymentService {
       const userRequirements = await fs.promises.readFile(userRequirementsPath, "utf-8");
 
       // Read base FastAPI requirements
-      const baseRequirementsPath = path.join(process.cwd(), "../api/requirements.txt");
+      const baseRequirementsPath = path.join(process.cwd(), "../api/base-requirements.txt");
       const baseRequirements = await fs.promises.readFile(baseRequirementsPath, "utf-8");
 
-      // Merge requirements (base + user requirements)
-      const mergedRequirements = `# Base FastAPI requirements\n${baseRequirements}\n\n# User model requirements\n${userRequirements}`;
+      // Merge requirements (user requirements FIRST, then base - allows user to control versions)
+      const mergedRequirements = `# User model requirements (installed first to control versions)\n${userRequirements}\n\n# Base FastAPI requirements\n${baseRequirements}`;
       await fs.promises.writeFile(path.join(workDir, "requirements.txt"), mergedRequirements);
 
       // Download inference.py if exists
@@ -244,12 +244,13 @@ export class DeploymentService {
 
 WORKDIR /app
 
-# Install system dependencies including curl for health checks
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \\
-    gcc g++ curl && \\
+    gcc g++ libgomp1 ca-certificates && \\
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
+# User requirements are listed first in requirements.txt to control versions
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -270,8 +271,8 @@ ENV DOWNLOAD_MODEL_ON_STARTUP=false
 # Expose port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s CMD curl -f http://localhost:8080/health || exit 1
+# Health check disabled - Cloud Run has its own health checks via TCP probe
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application
 CMD uvicorn app.main:app --host \${HOST} --port \${PORT}

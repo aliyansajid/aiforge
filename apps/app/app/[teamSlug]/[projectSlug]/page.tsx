@@ -96,8 +96,8 @@ export default function ProjectPage() {
     new Set(project?.endpoints.map((e) => e.framework) || [])
   );
 
-  const handleEndpointClick = (endpointId: string) => {
-    router.push(`/${teamSlug}/${projectSlug}/endpoints/${endpointId}`);
+  const handleEndpointClick = (endpointSlug: string) => {
+    router.push(`/${teamSlug}/${projectSlug}/${endpointSlug}`);
   };
 
   if (loading) {
@@ -177,7 +177,7 @@ export default function ProjectPage() {
             <Card
               key={endpoint.id}
               className="cursor-pointer"
-              onClick={() => handleEndpointClick(endpoint.id)}
+              onClick={() => handleEndpointClick(endpoint.slug)}
             >
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -209,11 +209,14 @@ export default function ProjectPage() {
                     <Calendar className="h-3 w-3" />
                     <span>
                       Created:&nbsp;
-                      {new Date(endpoint.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {new Date(endpoint.createdAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
                     </span>
                   </div>
                   {endpoint.deployedAt && (
@@ -221,11 +224,14 @@ export default function ProjectPage() {
                       <Activity className="h-3 w-3" />
                       <span>
                         Deployed:&nbsp;
-                        {new Date(endpoint.deployedAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {new Date(endpoint.deployedAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}
                       </span>
                     </div>
                   )}
@@ -234,11 +240,14 @@ export default function ProjectPage() {
                       <Clock className="h-3 w-3" />
                       <span>
                         Last used:&nbsp;
-                        {new Date(endpoint.lastUsedAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {new Date(endpoint.lastUsedAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}
                       </span>
                     </div>
                   )}

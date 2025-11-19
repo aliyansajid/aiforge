@@ -4,6 +4,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
+import { ZipExtractorEnhanced } from "./zip-extractor-enhanced";
 import { ZipExtractor } from "./zip-extractor";
 import { GitHandler } from "./git-handler";
 
@@ -285,16 +286,18 @@ export class EnhancedDeploymentService {
     });
 
     // Extract with intelligent handling
-    const extractResult = await ZipExtractor.extract(zipPath, workDir);
+    const extractResult = await ZipExtractorEnhanced.extract(zipPath, workDir);
 
     if (!extractResult.success) {
       throw new Error(`ZIP extraction failed: ${extractResult.error}`);
     }
 
-    // Validate extracted contents
-    const validation = await ZipExtractor.validate(extractResult.extractedPath);
+    // Validate extracted contents with enhanced validation (enforces model_config.json)
+    const validation = await ZipExtractorEnhanced.validate(extractResult.extractedPath);
     if (!validation.valid) {
-      throw new Error(`ZIP validation failed: ${validation.errors.join(", ")}`);
+      // Format error message for better UX
+      const errorMsg = validation.errors.join("\n\n");
+      throw new Error(`❌ ZIP Validation Failed:\n\n${errorMsg}`);
     }
 
     if (validation.warnings.length > 0) {
@@ -427,13 +430,13 @@ export class EnhancedDeploymentService {
     );
     const baseRequirements = await fs.promises.readFile(baseReqPath, "utf-8");
 
-    // Framework-specific dependencies
+    // Framework-specific dependencies (minimums only - user requirements take precedence)
     const frameworkDeps: Record<string, string> = {
-      sklearn: "scikit-learn>=1.3.2\njoblib>=1.3.2",
+      sklearn: "scikit-learn>=1.3.2\njoblib>=1.3.2\nnumpy>=1.24.0",
       pytorch:
-        "torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu\ntorchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu",
-      tensorflow: "tensorflow-cpu==2.15.0",
-      onnx: "onnxruntime==1.16.3",
+        "torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu\ntorchvision>=0.15.0 --index-url https://download.pytorch.org/whl/cpu",
+      tensorflow: "tensorflow-cpu>=2.15.0",
+      onnx: "onnxruntime>=1.16.0",
     };
 
     const frameworkReq = frameworkDeps[framework] || "";
@@ -458,10 +461,8 @@ export class EnhancedDeploymentService {
       const match = trimmed.match(/^([a-zA-Z0-9_-]+)/);
       if (match && match[1]) {
         const pkgName = match[1].toLowerCase();
-        // Keep user version if it exists, otherwise use first seen
-        if (!packageMap.has(pkgName)) {
-          packageMap.set(pkgName, trimmed);
-        }
+        // ALWAYS override with later version (user requirements come last, so they take precedence)
+        packageMap.set(pkgName, trimmed);
       } else {
         // Keep special lines (like --index-url)
         packageMap.set(trimmed, trimmed);
@@ -544,48 +545,42 @@ docker-compose*.yml
     framework: string,
     deploymentType: string
   ): string {
-    // For now, use simple Dockerfile without base images
-    // TODO: Build base images using apps/api/scripts/build-base-images.sh
-
     const frameworkDeps: Record<string, string> = {
-      sklearn: "\"scikit-learn>=1.3.2\" \"joblib>=1.3.2\"",
-      pytorch:
-        "torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu",
-      tensorflow: "tensorflow-cpu==2.15.0",
-      onnx: "onnxruntime==1.16.3",
+      sklearn: "scikit-learn>=1.3.2 joblib>=1.3.2 numpy>=1.24.0",
+      pytorch: "torch>=2.0.0 torchvision>=0.15.0 --index-url https://download.pytorch.org/whl/cpu",
+      tensorflow: "tensorflow-cpu>=2.15.0",
+      onnx: "onnxruntime>=1.16.0",
     };
 
     const deps = frameworkDeps[framework] || frameworkDeps["sklearn"];
 
-    return `# Auto-generated Dockerfile for ${framework} model
-# Deployment type: ${deploymentType}
-# Generated at: ${new Date().toISOString()}
+    return `# ================================================
+# OPTIMIZED MULTI-STAGE DOCKERFILE WITH CACHING
+# Framework: ${framework}
+# Deployment: ${deploymentType}
+# Generated: ${new Date().toISOString()}
+# ================================================
 
-FROM python:3.11-slim
+# ==========================================
+# STAGE 1: Base Dependencies (CACHED LAYER)
+# ==========================================
+FROM python:3.11-slim AS base-deps
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (rarely changes - CACHED)
 RUN apt-get update && apt-get install -y --no-install-recommends \\
     libgomp1 \\
     ca-certificates \\
     && rm -rf /var/lib/apt/lists/*
 
-# Copy user's model package and requirements FIRST
-COPY model_package/ /app/user_model/
-COPY requirements.txt /tmp/user-requirements.txt
+# ================================================
+# STAGE 2: Base FastAPI Dependencies (CACHED)
+# ================================================
+FROM base-deps AS fastapi-deps
 
-# Install user's dependencies first (this controls numpy, sklearn versions)
-RUN if [ -s /tmp/user-requirements.txt ]; then \\
-      echo "Installing user requirements..." && \\
-      cat /tmp/user-requirements.txt && \\
-      pip install --no-cache-dir -r /tmp/user-requirements.txt; \\
-    else \\
-      echo "No user requirements, installing default framework dependencies" && \\
-      pip install --no-cache-dir ${deps}; \\
-    fi
-
-# Install base API dependencies (without version conflicts)
+# Install base FastAPI dependencies FIRST (rarely change - HEAVILY CACHED)
+# These are installed BEFORE user requirements to maximize cache hits
 RUN pip install --no-cache-dir \\
     fastapi==0.104.1 \\
     uvicorn[standard]==0.24.0 \\
@@ -597,16 +592,59 @@ RUN pip install --no-cache-dir \\
     aiofiles==23.2.1 \\
     python-json-logger==2.0.7
 
-# Verify framework is installed
-RUN python3 -c "import ${framework === 'sklearn' ? 'sklearn' : framework}; print('✅ ${framework} installed successfully')"
+# ================================================
+# STAGE 3: User Dependencies (CACHED IF SAME)
+# ================================================
+FROM fastapi-deps AS user-deps
 
-# Copy FastAPI app
+# Copy ONLY requirements.txt first (maximizes cache hit rate)
+COPY requirements.txt /tmp/user-requirements.txt
+
+# Install user's ML dependencies
+# USER REQUIREMENTS CONTROL VERSIONS (installed after base FastAPI)
+# This allows user to override numpy/sklearn/etc versions
+RUN if [ -s /tmp/user-requirements.txt ]; then \\
+      echo "==================== INSTALLING USER REQUIREMENTS ====================" && \\
+      cat /tmp/user-requirements.txt && \\
+      echo "======================================================================" && \\
+      pip install --no-cache-dir -r /tmp/user-requirements.txt && \\
+      echo "✅ User requirements installed successfully"; \\
+    else \\
+      echo "No user requirements.txt provided, installing default ${framework} dependencies" && \\
+      pip install --no-cache-dir ${deps} && \\
+      echo "✅ Default ${framework} dependencies installed"; \\
+    fi
+
+# Verify framework installation
+RUN python3 -c "import ${framework === 'sklearn' ? 'sklearn' : framework}; print('✅ ${framework} framework verified')" || \\
+    (echo "❌ ${framework} framework not found! Check requirements.txt" && exit 1)
+
+# ================================================
+# STAGE 4: Final Runtime Image (LIGHTWEIGHT)
+# ================================================
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+# Copy system dependencies from base
+COPY --from=base-deps /usr/lib /usr/lib
+COPY --from=base-deps /usr/bin /usr/bin
+
+# Copy ALL Python packages from user-deps stage (includes FastAPI + user deps)
+COPY --from=user-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=user-deps /usr/local/bin /usr/local/bin
+
+# Copy FastAPI application code
 COPY app/ /app/app/
 
-# Add user model to Python path
-ENV PYTHONPATH="\${PYTHONPATH}:/app/user_model"
+# Copy user's model package (THIS LAYER CHANGES EVERY DEPLOYMENT)
+# Placed LAST to avoid invalidating earlier cached layers
+COPY model_package/ /app/user_model/
 
-# Environment variables
+# Add user model to Python path
+ENV PYTHONPATH="/app/user_model:\${PYTHONPATH}"
+
+# Runtime environment
 ENV PORT=8080
 ENV HOST=0.0.0.0
 ENV PYTHONUNBUFFERED=1
@@ -616,8 +654,12 @@ ENV BUILD_TIMESTAMP="${Date.now()}"
 
 EXPOSE 8080
 
-# Start uvicorn directly - FastAPI app will find model files automatically
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--log-level", "info"]
+# Health check (optional - Cloud Run has its own)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \\
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)" || exit 1
+
+# Run with optimized settings
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1", "--log-level", "info"]
 `;
   }
 
@@ -670,11 +712,13 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--log-le
     await this.updateStatus(
       endpointId,
       "BUILDING",
-      `[${new Date().toISOString()}] Building Docker image...`
+      `[${new Date().toISOString()}] Building Docker image (using cache for faster builds)...`
     );
 
+    // Use cache for faster builds! Multi-stage Dockerfile is optimized for caching
+    // Only use --no-cache if explicitly needed for debugging
     const { stdout: buildOutput } = await execAsync(
-      `docker build --no-cache --platform linux/amd64 -t ${imageName} .`,
+      `docker build --platform linux/amd64 --build-arg BUILDKIT_INLINE_CACHE=1 -t ${imageName} .`,
       { cwd: workDir, maxBuffer: 10 * 1024 * 1024 }
     );
 

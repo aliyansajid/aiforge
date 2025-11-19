@@ -27,6 +27,7 @@ import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import { DeploymentStatus } from "@/components/deployment-status";
 import { Spinner } from "@repo/ui/src/components/spinner";
+import { ModelConfigGenerator } from "@/components/model-config-generator";
 
 const CreateEndpoint = () => {
   const router = useRouter();
@@ -318,13 +319,88 @@ const CreateEndpoint = () => {
                     accept=".zip"
                     disabled={isSubmitting}
                   />
+
+                  {/* CRITICAL REQUIREMENT */}
+                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-md border-2 border-blue-300 dark:border-blue-700">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">📋</div>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <p className="font-bold text-blue-900 dark:text-blue-100">
+                            REQUIRED: model_config.json
+                          </p>
+                          <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                            Your ZIP must include a{" "}
+                            <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded font-mono text-xs">
+                              model_config.json
+                            </code>{" "}
+                            file at the root. This tells us how to load and use your model.
+                          </p>
+                        </div>
+
+                        {/* Template Generator Button */}
+                        <div className="pt-2">
+                          <ModelConfigGenerator />
+                        </div>
+
+                        {/* Example Structure */}
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-sm font-semibold text-blue-900 dark:text-blue-100 hover:underline">
+                            Show example ZIP structure
+                          </summary>
+                          <pre className="mt-2 bg-blue-100 dark:bg-blue-900 p-3 rounded text-xs font-mono overflow-x-auto">
+{`my-model.zip/
+├── model_config.json  ← Required!
+├── inference.py       ← Your entry point
+├── model.pkl          ← Your model
+├── vectorizer.pkl     ← Auxiliary files (optional)
+├── requirements.txt   ← Strongly recommended
+└── utils/             ← Support code (optional)
+    └── helpers.py`}
+                          </pre>
+                        </details>
+
+                        {/* What it should contain */}
+                        <details>
+                          <summary className="cursor-pointer text-sm font-semibold text-blue-900 dark:text-blue-100 hover:underline">
+                            What should model_config.json contain?
+                          </summary>
+                          <div className="mt-2 text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                            <p className="font-medium">Required fields:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                              <li>
+                                <strong>entry_point:</strong> Your Python file (e.g., "inference.py")
+                              </li>
+                              <li>
+                                <strong>model_file:</strong> Your model file (e.g., "model.pkl")
+                              </li>
+                              <li>
+                                <strong>framework:</strong> "sklearn", "pytorch", "tensorflow", "onnx", or "custom"
+                              </li>
+                              <li>
+                                <strong>load:</strong> Function to load your model
+                              </li>
+                              <li>
+                                <strong>predict:</strong> Function to make predictions
+                              </li>
+                            </ul>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Info */}
                   <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
-                    <p className="font-medium mb-2">ZIP should contain:</p>
+                    <p className="font-medium mb-2">Best Practices:</p>
                     <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Model file(s): .pkl, .pt, .h5, .onnx, etc.</li>
-                      <li>requirements.txt (optional)</li>
-                      <li>inference.py (optional for custom logic)</li>
-                      <li>Any utils, libs, or custom Python files</li>
+                      <li>
+                        <strong>Always include requirements.txt</strong> with exact versions from training
+                      </li>
+                      <li>Keep ZIP under 2GB for faster deployments</li>
+                      <li>Don't include virtual environments (venv/, env/)</li>
+                      <li>Remove unnecessary files (.git/, __pycache__/, .DS_Store)</li>
+                      <li>Test your model_config.json matches your files</li>
                     </ul>
                   </div>
                 </div>

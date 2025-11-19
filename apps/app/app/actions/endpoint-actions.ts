@@ -135,3 +135,73 @@ export async function getEndpointDetails(endpointId: string) {
     };
   }
 }
+
+export async function getEndpointBySlug(
+  teamSlug: string,
+  projectSlug: string,
+  endpointSlug: string
+) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      message: "Please sign in to view this endpoint.",
+      data: null,
+    };
+  }
+
+  try {
+    const endpoint = await prisma.endpoint.findFirst({
+      where: {
+        slug: endpointSlug,
+        project: {
+          slug: projectSlug,
+          team: {
+            slug: teamSlug,
+            members: {
+              some: {
+                userId: session.user.id,
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        framework: true,
+        inputType: true,
+        serviceUrl: true,
+        apiKey: true,
+        status: true,
+        accessType: true,
+        deployedAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!endpoint) {
+      return {
+        success: false,
+        message: "Endpoint not found or you don't have access.",
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: "Endpoint fetched successfully.",
+      data: endpoint,
+    };
+  } catch (error) {
+    console.error("Error fetching endpoint by slug:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred while fetching the endpoint.",
+      data: null,
+    };
+  }
+}

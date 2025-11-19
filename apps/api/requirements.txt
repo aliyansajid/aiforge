@@ -8,17 +8,19 @@ pydantic-settings==2.1.0
 google-cloud-storage==2.14.0
 google-auth==2.25.2
 
-# ML Framework Support (install based on model type)
-scikit-learn==1.3.2  # For sklearn models
-# torch==2.1.0+cpu  # Uncomment for PyTorch models
-# tensorflow==2.15.0  # Uncomment for TensorFlow models
-# onnxruntime==1.16.3  # Uncomment for ONNX models
+# ML Framework Support
+# These are installed via user requirements.txt or framework-specific base images
+# Avoid hardcoding versions here to prevent conflicts with user models
+# scikit-learn>=1.3.2  # For sklearn models (install via user requirements)
+# torch>=2.0.0  # For PyTorch models (install via user requirements)
+# tensorflow>=2.15.0  # For TensorFlow models (install via user requirements)
+# onnxruntime>=1.16.0  # For ONNX models (install via user requirements)
 
 # Utilities
 python-multipart==0.0.6  # For file uploads
 pillow==10.1.0  # For image processing
-numpy==1.26.2
 aiofiles==23.2.1
+# Note: numpy is installed via ML framework or user requirements to avoid version conflicts
 
 # Monitoring & Logging
 python-json-logger==2.0.7
