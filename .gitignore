@@ -41,4 +41,10 @@ yarn-error.log*
 cloudsql/
 .ssl/
 
+# Python virtual environments
+*_env/
+venv/
+*.pyc
+__pycache__/
+
 setup-vm.sh
