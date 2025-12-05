@@ -14,13 +14,24 @@
         "AUTH_SECRET",
         "AUTH_URL",
         "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_API_URL",
         "NEXT_PUBLIC_CDN_URL",
+        "NEXT_PUBLIC_DASHBOARD_URL",
         "SMTP_HOST",
         "SMTP_PORT",
         "SMTP_USER",
         "SMTP_PASS",
         "SMTP_REPLY_TO",
-        "DATABASE_URL"
+        "DATABASE_URL",
+        "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GOOGLE_APPLICATION_CREDENTIALS_BASE64",
+        "GCS_BUCKET_MODELS",
+        "GCS_BUCKET_BUILD",
+        "GCS_BUCKET_ASSETS",
+        "ARTIFACT_REGISTRY_REPO",
+        "CLOUD_RUN_REGION",
+        "PORT"
       ]
     },
     "lint": {
@@ -35,7 +46,10 @@
       "persistent": true
     },
     "db:generate": {
-      "cache": false
+      "cache": false,
+      "env": [
+        "DATABASE_URL"
+      ]
     },
     "db:migrate": {
       "cache": false,
