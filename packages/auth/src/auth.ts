@@ -86,6 +86,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   // JWT signing secret
   secret: process.env.AUTH_SECRET,
 
+  // Enable trust host for Vercel deployments
+  trustHost: true,
+
   // Database sessions
   session: {
     strategy: "database",
