@@ -38,7 +38,11 @@ export function DynamicInput({
         onChange(reader.result as string); // Store base64 for API call
       };
       reader.readAsDataURL(file);
-    } else if (inputType === "AUDIO" || inputType === "VIDEO" || inputType === "FILE") {
+    } else if (
+      inputType === "AUDIO" ||
+      inputType === "VIDEO" ||
+      inputType === "FILE"
+    ) {
       // For other files, just convert to base64
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -70,7 +74,7 @@ export function DynamicInput({
                 id="input"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                placeholder='[[1.0, 2.0, 3.0, ...]]'
+                placeholder="[[1.0, 2.0, 3.0, ...]]"
                 className="min-h-[120px] font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">

@@ -81,7 +81,7 @@ export function CreateProjectDialog({
               fieldType={FormFieldType.INPUT}
               name="name"
               label="Name"
-              placeholder="My AI Project"
+              placeholder="e.g. My AI Project"
               disabled={isPending}
             />
 

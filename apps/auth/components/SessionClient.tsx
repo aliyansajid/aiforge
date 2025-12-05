@@ -8,7 +8,7 @@ import { DataTable } from "./data-table/datatable";
 import { columns, SessionTableData } from "./data-table/columns";
 import { signOutAllSessions } from "@/actions/session-actions";
 import { toast } from "sonner";
-import { signOut } from "@repo/auth";
+import { signOut } from "@repo/auth/client";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),

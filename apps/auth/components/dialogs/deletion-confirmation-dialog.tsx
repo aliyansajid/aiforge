@@ -21,10 +21,13 @@ import {
   FormFieldType,
 } from "@repo/ui/components/custom-form-field";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { signOut, useSession } from "@repo/auth";
-import { deleteAccount } from "@/actions/account-deletion-actions";
+import { signOut, useSession } from "@repo/auth/client";
 
-const DeletionConfirmationDialog = () => {
+interface DeletionConfirmationDialogProps {
+  onDelete: (formData: FormData) => Promise<{ success: boolean; error?: string }>;
+}
+
+const DeletionConfirmationDialog = ({ onDelete }: DeletionConfirmationDialogProps) => {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -51,7 +54,7 @@ const DeletionConfirmationDialog = () => {
         const formData = new FormData();
         formData.append("email", values.email);
 
-        const response = await deleteAccount(formData);
+        const response = await onDelete(formData);
 
         if (response.success) {
           await signOut();

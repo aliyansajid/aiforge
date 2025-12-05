@@ -16,13 +16,17 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { Spinner } from "@repo/ui/src/components/spinner";
 
 interface DeleteTeamButtonProps {
   teamSlug: string;
   teamName: string;
 }
 
-export function DeleteTeamButton({ teamSlug, teamName }: DeleteTeamButtonProps) {
+export function DeleteTeamButton({
+  teamSlug,
+  teamName,
+}: DeleteTeamButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -59,41 +63,29 @@ export function DeleteTeamButton({ teamSlug, teamName }: DeleteTeamButtonProps) 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          Delete Team
-        </Button>
+        <Button variant="destructive">Delete Team</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <DialogTitle>Delete Team</DialogTitle>
-          </div>
-          <DialogDescription className="pt-2">
-            This action cannot be undone. This will permanently delete the team{" "}
-            <strong>{teamName}</strong> and remove all associated data including:
+          <DialogTitle>Delete Team</DialogTitle>
+
+          <DialogDescription>
+            This action cannot be undone. This will permanently delete the
+            team&nbsp;
+            <strong>{teamName}</strong> and remove all associated data
+            including:
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-            <li>All projects and endpoints</li>
-            <li>All team members and invitations</li>
-            <li>All deployment history and logs</li>
-            <li>All analytics and usage data</li>
-          </ul>
-
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-            <p className="text-sm font-medium mb-2">
-              Please type <span className="font-mono font-bold">{teamName}</span> to confirm.
-            </p>
-            <Input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Type team name here"
-              className="font-mono"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-text">
+            To confirm, type<b className="font-semibold">"{teamName}"</b>
+          </Label>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={teamName}
+          />
         </div>
 
         <DialogFooter>
@@ -114,7 +106,7 @@ export function DeleteTeamButton({ teamSlug, teamName }: DeleteTeamButtonProps) 
             onClick={handleDelete}
             disabled={confirmText !== teamName || isDeleting}
           >
-            {isDeleting ? "Deleting..." : "Delete Team"}
+            {isDeleting ? <Spinner /> : "Delete Team"}
           </Button>
         </DialogFooter>
       </DialogContent>

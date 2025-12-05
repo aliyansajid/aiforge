@@ -12,7 +12,15 @@ import {
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
-import { Brain, Plus, Search, Clock, Activity, Calendar } from "lucide-react";
+import {
+  Brain,
+  Search,
+  Activity,
+  Calendar,
+  Bot,
+  SearchX,
+  PlusCircle,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,6 +39,14 @@ import {
 } from "@/app/actions/project-actions";
 import { toast } from "sonner";
 import { Spinner } from "@repo/ui/src/components/spinner";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@repo/ui/src/components/empty";
 
 export default function ProjectPage() {
   const router = useRouter();
@@ -123,7 +139,7 @@ export default function ProjectPage() {
         </div>
         <Button asChild>
           <Link href={`/${teamSlug}/${projectSlug}/create-endpoint`}>
-            <Plus />
+            <PlusCircle />
             Create Endpoint
           </Link>
         </Button>
@@ -149,10 +165,30 @@ export default function ProjectPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="DEPLOYED">Deployed</SelectItem>
-              <SelectItem value="BUILDING">Building</SelectItem>
-              <SelectItem value="DEPLOYING">Deploying</SelectItem>
-              <SelectItem value="FAILED">Failed</SelectItem>
+              <SelectItem value="DEPLOYED">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  Deployed
+                </div>
+              </SelectItem>
+              <SelectItem value="BUILDING">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  Building
+                </div>
+              </SelectItem>
+              <SelectItem value="DEPLOYING">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                  Deploying
+                </div>
+              </SelectItem>
+              <SelectItem value="FAILED">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  Failed
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
           <Select value={frameworkFilter} onValueChange={setFrameworkFilter}>
@@ -172,7 +208,7 @@ export default function ProjectPage() {
       )}
 
       {filteredEndpoints.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {filteredEndpoints.map((endpoint) => (
             <Card
               key={endpoint.id}
@@ -204,8 +240,8 @@ export default function ProjectPage() {
                   <Badge variant="outline">{endpoint.accessType}</Badge>
                 </div>
 
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>
                       Created:&nbsp;
@@ -219,28 +255,13 @@ export default function ProjectPage() {
                       )}
                     </span>
                   </div>
+
                   {endpoint.deployedAt && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Activity className="h-3 w-3" />
                       <span>
                         Deployed:&nbsp;
                         {new Date(endpoint.deployedAt).toLocaleDateString(
-                          "en-US",
-                          {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          }
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {endpoint.lastUsedAt && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        Last used:&nbsp;
-                        {new Date(endpoint.lastUsedAt).toLocaleDateString(
                           "en-US",
                           {
                             year: "numeric",
@@ -258,38 +279,56 @@ export default function ProjectPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
+          <CardContent>
             {project.endpoints.length === 0 ? (
               <>
-                <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No endpoints yet</h3>
-                <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-                  Create your first endpoint to deploy and manage your AI models
-                </p>
-                <Button asChild>
-                  <Link href={`/${teamSlug}/${projectSlug}/create-endpoint`}>
-                    <Plus />
-                    Create Endpoint
-                  </Link>
-                </Button>
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Bot />
+                    </EmptyMedia>
+                    <EmptyTitle>No Endpoints Yet</EmptyTitle>
+                    <EmptyDescription>
+                      You haven&apos;t created any endpoints yet. Get started by
+                      creating your first endpoint.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button>
+                      <Link
+                        href={`/${teamSlug}/${projectSlug}/create-endpoint`}
+                      >
+                        Create Endpoint
+                      </Link>
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               </>
             ) : (
               <>
-                <Search className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No endpoints found</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Try adjusting your filters or search query
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setStatusFilter("all");
-                    setFrameworkFilter("all");
-                  }}
-                >
-                  Clear Filters
-                </Button>
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <SearchX />
+                    </EmptyMedia>
+                    <EmptyTitle>No endpoints found</EmptyTitle>
+                    <EmptyDescription>
+                      Try adjusting your filters or search query
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("all");
+                        setFrameworkFilter("all");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               </>
             )}
           </CardContent>

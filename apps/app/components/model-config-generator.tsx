@@ -27,7 +27,9 @@ interface ModelConfigGeneratorProps {
   onGenerate?: (config: string) => void;
 }
 
-export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) {
+export function ModelConfigGenerator({
+  onGenerate,
+}: ModelConfigGeneratorProps) {
   const [framework, setFramework] = useState<string>("sklearn");
   const [modelName, setModelName] = useState("My Model");
   const [modelFile, setModelFile] = useState("");
@@ -103,21 +105,20 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
     <Dialog>
       <DialogTrigger asChild>
         <Button type="button" variant="outline" className="w-full">
-          <FileCode className="h-4 w-4 mr-2" />
+          <FileCode />
           Generate model_config.json
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Generate model_config.json</DialogTitle>
           <DialogDescription>
-            Create a configuration file that tells us how to load and use your model.
-            This file must be included at the root of your ZIP archive.
+            Create a configuration file that tells us how to load and use your
+            model. This file must be included at the root of your ZIP archive.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Info */}
           <div className="space-y-4">
             <h3 className="font-semibold text-sm">Basic Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -127,13 +128,13 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
                   id="modelName"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  placeholder="My Sentiment Analyzer"
+                  placeholder="e.g. My Sentiment Analyzer"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="framework">Framework</Label>
                 <Select value={framework} onValueChange={setFramework}>
-                  <SelectTrigger id="framework">
+                  <SelectTrigger id="framework" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -148,12 +149,11 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             </div>
           </div>
 
-          {/* Files */}
           <div className="space-y-4">
             <h3 className="font-semibold text-sm">Files</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="entryPoint">Entry Point (Python file)</Label>
+                <Label htmlFor="entryPoint">Entry Point</Label>
                 <Input
                   id="entryPoint"
                   value={entryPoint}
@@ -179,7 +179,6 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             </div>
           </div>
 
-          {/* Functions */}
           <div className="space-y-4">
             <h3 className="font-semibold text-sm">Functions</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -210,7 +209,6 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             </div>
           </div>
 
-          {/* Auxiliary Files */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -224,7 +222,9 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             </div>
             {hasAuxFiles && (
               <div className="space-y-2">
-                <Label htmlFor="auxFilesList">Auxiliary Files (comma-separated)</Label>
+                <Label htmlFor="auxFilesList">
+                  Auxiliary Files (comma-separated)
+                </Label>
                 <Input
                   id="auxFilesList"
                   value={auxFiles}
@@ -238,7 +238,6 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             )}
           </div>
 
-          {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
             <div className="relative">
@@ -248,7 +247,6 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2">
             <Button
               type="button"
@@ -258,34 +256,34 @@ export function ModelConfigGenerator({ onGenerate }: ModelConfigGeneratorProps) 
             >
               {copied ? (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check />
                   Copied!
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy />
                   Copy to Clipboard
                 </>
               )}
             </Button>
-            <Button
-              type="button"
-              onClick={handleDownload}
-              className="flex-1"
-            >
-              <Download className="h-4 w-4 mr-2" />
+            <Button type="button" onClick={handleDownload} className="flex-1">
+              <Download />
               Download File
             </Button>
           </div>
 
-          {/* Help Text */}
           <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-md text-sm border border-blue-200 dark:border-blue-800">
             <p className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              📝 Next Steps:
+              Next Steps:
             </p>
             <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200 ml-2">
               <li>Download or copy this configuration</li>
-              <li>Save it as <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">model_config.json</code></li>
+              <li>
+                Save it as&nbsp;
+                <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">
+                  model_config.json
+                </code>
+              </li>
               <li>Place it at the root of your ZIP archive</li>
               <li>Make sure all referenced files exist in your ZIP</li>
             </ol>

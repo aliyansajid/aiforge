@@ -3,20 +3,18 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
 import { Badge } from "@repo/ui/components/badge";
 import { TrendingUp, TrendingDown, Minus, LucideIcon } from "lucide-react";
 
-// Type definition (moved here to avoid Node.js imports)
 interface MetricSummary {
   current: number;
   average: number;
   min: number;
   max: number;
-  trend: 'up' | 'down' | 'stable';
+  trend: "up" | "down" | "stable";
 }
 
 interface MetricCardProps {
@@ -71,7 +69,7 @@ export function MetricCard({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
       </CardHeader>
@@ -84,7 +82,10 @@ export function MetricCard({
         )}
         {summary && (
           <div className="flex items-center gap-2 mt-3">
-            <Badge variant={getTrendColor() as any} className="flex items-center gap-1">
+            <Badge
+              variant={getTrendColor() as any}
+              className="flex items-center gap-1"
+            >
               {getTrendIcon()}
               {summary.trend}
             </Badge>

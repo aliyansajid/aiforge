@@ -1,6 +1,6 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import {
 } from "@repo/ui/components/chart";
 import { format } from "date-fns";
 
-// Type definition (moved here to avoid Node.js imports)
 interface MetricDataPoint {
   timestamp: Date;
   value: number;
@@ -28,8 +27,6 @@ interface MetricAreaChartProps {
   data: MetricDataPoint[];
   dataKey?: string;
   color?: string;
-  yAxisFormatter?: (value: number) => string;
-  tooltipFormatter?: (value: number) => string;
 }
 
 export function MetricAreaChart({
@@ -37,16 +34,15 @@ export function MetricAreaChart({
   description,
   data,
   dataKey = "value",
-  color = "hsl(var(--chart-1))",
-  yAxisFormatter,
-  tooltipFormatter,
+  color = "var(--chart-1)",
 }: MetricAreaChartProps) {
-  // Transform data for recharts
-  const chartData = data.map((point) => ({
-    timestamp: point.timestamp.getTime(),
-    [dataKey]: point.value,
-    formattedTime: format(point.timestamp, "MMM d, HH:mm"),
-  }));
+  // Transform data for recharts - filter out null values only
+  const chartData = data
+    .filter((point) => point.value != null)
+    .map((point) => ({
+      time: format(point.timestamp, "MMM d, h:mm a"),
+      [dataKey]: point.value,
+    }));
 
   const chartConfig = {
     [dataKey]: {
@@ -54,8 +50,6 @@ export function MetricAreaChart({
       color: color,
     },
   } satisfies ChartConfig;
-
-  const defaultFormatter = (value: number) => value.toFixed(2);
 
   return (
     <Card>
@@ -65,7 +59,7 @@ export function MetricAreaChart({
       </CardHeader>
       <CardContent>
         {chartData.length > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[300px]">
+          <ChartContainer config={chartConfig}>
             <AreaChart
               accessibilityLayer
               data={chartData}
@@ -76,30 +70,23 @@ export function MetricAreaChart({
             >
               <CartesianGrid vertical={false} />
               <XAxis
-                dataKey="formattedTime"
+                dataKey="time"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => value.slice(0, 10)}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tickFormatter={yAxisFormatter || defaultFormatter}
+                tickFormatter={(value) => {
+                  // Show only time for shorter labels
+                  const parts = value.split(", ");
+                  return parts.length > 1 ? parts[1] : value;
+                }}
               />
               <ChartTooltip
                 cursor={false}
-                content={
-                  <ChartTooltipContent
-                    indicator="line"
-                    formatter={tooltipFormatter || defaultFormatter}
-                  />
-                }
+                content={<ChartTooltipContent indicator="line" />}
               />
               <Area
                 dataKey={dataKey}
-                type="natural"
+                type="monotone"
                 fill={`var(--color-${dataKey})`}
                 fillOpacity={0.4}
                 stroke={`var(--color-${dataKey})`}

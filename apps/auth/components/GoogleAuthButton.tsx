@@ -1,12 +1,12 @@
 "use client";
 
-import { signIn } from "@repo/auth";
+import { signIn } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 
 const GoogleAuthButton = () => {
   const handleGoogleSignIn = async () => {
     const searchParams = new URLSearchParams(window.location.search);
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const callbackUrl = searchParams.get("callbackUrl") || process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
 
     await signIn("google", { callbackUrl });
   };

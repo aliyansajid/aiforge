@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { Calendar, MoreVertical, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,17 +65,24 @@ export function ProjectCard({ project, teamSlug }: ProjectCardProps) {
 
   return (
     <>
-      <Card className="cursor-pointer " onClick={handleCardClick}>
+      <Card className="cursor-pointer" onClick={handleCardClick}>
         <CardHeader>
           <CardTitle>{project.name}</CardTitle>
           <CardDescription>{project.slug}</CardDescription>
         </CardHeader>
-
         <CardContent>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              Created: {new Date(project.createdAt).toLocaleDateString()}
-            </p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>
+                Created:&nbsp;
+                {new Date(project.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon">

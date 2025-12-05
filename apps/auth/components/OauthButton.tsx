@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { signIn } from "@repo/auth";
+import { signIn } from "@repo/auth/client";
 import { disconnectOAuthProvider } from "@/actions/account-actions";
 import { toast } from "sonner";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";

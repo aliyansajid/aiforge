@@ -80,7 +80,7 @@ export function CreateTeamDialog({
               fieldType={FormFieldType.INPUT}
               name="name"
               label="Name"
-              placeholder="Acme Inc"
+              placeholder="e.g. Acme Inc"
               disabled={isPending}
             />
 

@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  LayoutDashboard,
-  Boxes,
-  Settings2,
-  Users,
-  BarChart3,
-  Activity,
-  CreditCard,
-} from "lucide-react";
+import { LayoutDashboard, Boxes, Settings2, BarChart3 } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -18,7 +10,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@repo/ui/components/sidebar";
-import { useSession } from "@repo/auth";
+import { useSession } from "@repo/auth/client";
 import { TeamSwitcher } from "@/components/team-switcher";
 import { Team, Project } from "@/types";
 import { getPermissions, type TeamRole } from "@/lib/rbac";

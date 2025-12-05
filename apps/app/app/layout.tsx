@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "@repo/ui/globals.css";
-import { auth, SessionProvider } from "@repo/auth";
+import { auth } from "@repo/auth";
+import { SessionProvider } from "@repo/auth/client";
 import { ThemeProvider } from "@repo/ui/components/theme-provider";
 import { Toaster } from "@repo/ui/components/sonner";
 

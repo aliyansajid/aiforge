@@ -3,7 +3,6 @@
 import {
   Folder,
   MoreHorizontal,
-  Share,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +23,10 @@ import {
   useSidebar,
 } from "@repo/ui/components/sidebar";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useState, useTransition } from "react";
+import { deleteProject } from "@/app/actions/project-actions";
 
 export function NavProjects({
   projects,
@@ -35,12 +38,38 @@ export function NavProjects({
   }[];
 }) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = (projectUrl: string) => {
+    startTransition(async () => {
+      try {
+        // Extract projectSlug from URL (format: /teamSlug/projectSlug)
+        const urlParts = projectUrl.split('/');
+        const projectSlug = urlParts[urlParts.length - 1];
+
+        const result = await deleteProject(projectSlug);
+
+        if (result.success) {
+          toast.success("Project deleted successfully");
+          router.refresh();
+        } else {
+          toast.error(result.error || "Failed to delete project");
+        }
+      } catch (error) {
+        toast.error("An error occurred while deleting the project");
+      }
+    });
+  };
+
+  // Show only first 3 projects
+  const displayedProjects = projects.slice(0, 3);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
+        {displayedProjects.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <Link href={item.url}>
@@ -60,16 +89,17 @@ export function NavProjects({
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}
               >
-                <DropdownMenuItem>
-                  <Folder className="text-muted-foreground" />
-                  <span>View Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Share className="text-muted-foreground" />
-                  <span>Share Project</span>
+                <DropdownMenuItem asChild>
+                  <Link href={item.url}>
+                    <Folder className="text-muted-foreground" />
+                    <span>View Project</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDelete(item.url)}
+                  disabled={isPending}
+                >
                   <Trash2 className="text-muted-foreground" />
                   <span>Delete Project</span>
                 </DropdownMenuItem>
@@ -77,12 +107,6 @@ export function NavProjects({
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton>
-            <MoreHorizontal />
-            <span>More</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );

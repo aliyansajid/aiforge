@@ -50,9 +50,9 @@ export default async function TeamMembersPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold">Team Members</h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm text-balance">
             Manage team members and invitations for {currentTeam.name}
           </p>
         </div>

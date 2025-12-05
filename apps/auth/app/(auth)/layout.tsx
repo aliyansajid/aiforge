@@ -23,13 +23,16 @@ export default async function Layout({
       </div>
       <div className="bg-muted relative hidden lg:block">
         <video
-          src="/auth_video.mp4"
           autoPlay
           muted
           loop
           playsInline
+          preload="auto"
           className="absolute inset-0 h-full w-full object-cover"
-        />
+        >
+          <source src="/auth_video.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
       </div>
     </div>
   );

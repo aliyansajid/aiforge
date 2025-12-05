@@ -46,12 +46,67 @@ export async function GET(
 
     const currentStep = statusMapping[endpoint.status] || "INITIALIZING";
 
+    // Helper function to get step message based on status
+    const getStepMessage = (
+      stepName: string,
+      isCurrentStep: boolean,
+      isPastStep: boolean
+    ): string => {
+      if (isPastStep) {
+        // Step is completed
+        switch (stepName) {
+          case "INITIALIZING":
+            return "Deployment environment ready";
+          case "UPLOADING":
+            return "Files uploaded successfully to Google Cloud Storage";
+          case "BUILDING":
+            return "Docker image built successfully";
+          case "DEPLOYING":
+            return "Service deployed to Cloud Run";
+          case "COMPLETED":
+            return "Your endpoint is live and ready to use";
+          default:
+            return "Completed";
+        }
+      } else if (isCurrentStep) {
+        // Step is in progress
+        switch (stepName) {
+          case "INITIALIZING":
+            return "Setting up deployment environment...";
+          case "UPLOADING":
+            return "Uploading files to Google Cloud Storage...";
+          case "BUILDING":
+            return "Building Docker image with your dependencies...";
+          case "DEPLOYING":
+            return "Deploying service to Google Cloud Run...";
+          default:
+            return "In progress...";
+        }
+      } else {
+        // Step is pending
+        switch (stepName) {
+          case "INITIALIZING":
+            return "Waiting to initialize";
+          case "UPLOADING":
+            return "Waiting to upload files";
+          case "BUILDING":
+            return "Waiting to build Docker image";
+          case "DEPLOYING":
+            return "Waiting to deploy to Cloud Run";
+          case "COMPLETED":
+            return "Waiting for all steps to complete";
+          default:
+            return "Waiting...";
+        }
+      }
+    };
+
     // Create step statuses based on current status
     const steps = [
       {
         step: "INITIALIZING",
         status: "completed" as const,
-        message: "Endpoint created",
+        message: getStepMessage("INITIALIZING", false, true),
         timestamp: endpoint.createdAt,
       },
       {
@@ -62,7 +117,11 @@ export async function GET(
             : ["BUILDING", "DEPLOYING", "DEPLOYED"].includes(endpoint.status)
             ? ("completed" as const)
             : ("pending" as const),
-        message: endpoint.status === "UPLOADING" ? "Uploading files to GCS..." : "Files uploaded",
+        message: getStepMessage(
+          "UPLOADING",
+          endpoint.status === "UPLOADING",
+          ["BUILDING", "DEPLOYING", "DEPLOYED"].includes(endpoint.status)
+        ),
         timestamp: endpoint.createdAt,
       },
       {
@@ -73,7 +132,11 @@ export async function GET(
             : ["DEPLOYING", "DEPLOYED"].includes(endpoint.status)
             ? ("completed" as const)
             : ("pending" as const),
-        message: endpoint.status === "BUILDING" ? "Building Docker image..." : endpoint.status === "DEPLOYED" ? "Build completed" : "Waiting to build",
+        message: getStepMessage(
+          "BUILDING",
+          endpoint.status === "BUILDING",
+          ["DEPLOYING", "DEPLOYED"].includes(endpoint.status)
+        ),
         timestamp: endpoint.createdAt,
       },
       {
@@ -84,13 +147,56 @@ export async function GET(
             : endpoint.status === "DEPLOYED"
             ? ("completed" as const)
             : ("pending" as const),
-        message: endpoint.status === "DEPLOYING" ? "Deploying to Cloud Run..." : endpoint.status === "DEPLOYED" ? "Deployed successfully" : "Waiting to deploy",
+        message: getStepMessage(
+          "DEPLOYING",
+          endpoint.status === "DEPLOYING",
+          endpoint.status === "DEPLOYED"
+        ),
         timestamp: endpoint.deployedAt || endpoint.createdAt,
+      },
+      {
+        step: "COMPLETED",
+        status: endpoint.status === "DEPLOYED" ? ("completed" as const) : ("pending" as const),
+        message: getStepMessage("COMPLETED", false, endpoint.status === "DEPLOYED"),
+        timestamp: endpoint.deployedAt,
       },
     ];
 
-    // Parse logs from buildLogs
-    const logs = endpoint.buildLogs ? endpoint.buildLogs.split("\n").filter(Boolean) : [];
+    // Create comprehensive logs for all steps
+    const logs: string[] = [];
+
+    // Add initialization logs
+    logs.push(`[${new Date(endpoint.createdAt).toLocaleTimeString()}] 🚀 Deployment initialized`);
+    logs.push(`[${new Date(endpoint.createdAt).toLocaleTimeString()}] 📋 Endpoint ID: ${endpoint.id}`);
+    logs.push(`[${new Date(endpoint.createdAt).toLocaleTimeString()}] 📝 Endpoint Name: ${endpoint.name}`);
+
+    // Add upload logs if past that stage
+    if (["UPLOADING", "BUILDING", "DEPLOYING", "DEPLOYED"].includes(endpoint.status)) {
+      logs.push(`[${new Date(endpoint.createdAt).toLocaleTimeString()}] 📤 Starting file upload to Google Cloud Storage...`);
+    }
+
+    if (["BUILDING", "DEPLOYING", "DEPLOYED"].includes(endpoint.status)) {
+      logs.push(`[${new Date(endpoint.createdAt).toLocaleTimeString()}] ✅ Files uploaded successfully`);
+    }
+
+    // Add build logs if available
+    if (endpoint.buildLogs && ["BUILDING", "DEPLOYING", "DEPLOYED"].includes(endpoint.status)) {
+      logs.push(`[${new Date().toLocaleTimeString()}] 🐳 Starting Docker image build...`);
+      endpoint.buildLogs.split("\n").filter(Boolean).forEach(log => {
+        logs.push(log);
+      });
+    }
+
+    // Add deployment logs
+    if (endpoint.status === "DEPLOYING") {
+      logs.push(`[${new Date().toLocaleTimeString()}] 🚀 Deploying to Google Cloud Run...`);
+    }
+
+    if (endpoint.status === "DEPLOYED" && endpoint.deployedAt) {
+      logs.push(`[${new Date(endpoint.deployedAt).toLocaleTimeString()}] ✅ Deployment completed successfully!`);
+      logs.push(`[${new Date(endpoint.deployedAt).toLocaleTimeString()}] 🌐 Service URL: ${endpoint.serviceUrl || "Pending..."}`);
+      logs.push(`[${new Date(endpoint.deployedAt).toLocaleTimeString()}] 🔑 API Key: ${endpoint.apiKey}`);
+    }
 
     return NextResponse.json({
       id: endpoint.id,

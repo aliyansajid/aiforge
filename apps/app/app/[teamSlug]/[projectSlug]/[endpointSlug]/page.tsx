@@ -21,7 +21,16 @@ import {
 } from "@repo/ui/components/tabs";
 import { Alert, AlertDescription } from "@repo/ui/components/alert";
 import { Spinner } from "@repo/ui/components/spinner";
-import { Brain, Copy, Play, AlertCircle, Code, Zap, Key, Activity } from "lucide-react";
+import {
+  Brain,
+  Copy,
+  Play,
+  AlertCircle,
+  Code,
+  Zap,
+  Key,
+  Activity,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DynamicInput } from "@/components/dynamic-input";
 import { MetricsDashboard } from "@/components/metrics/metrics-dashboard";
@@ -199,7 +208,7 @@ export default function EndpointPlaygroundPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="p-3 rounded-lg bg-muted">
           <Brain className="h-8 w-8 text-primary" />
         </div>
@@ -223,19 +232,19 @@ export default function EndpointPlaygroundPage() {
       <Tabs defaultValue="playground">
         <TabsList>
           <TabsTrigger value="playground">
-            <Play className="h-4 w-4" />
+            <Play />
             Playground
           </TabsTrigger>
           <TabsTrigger value="metrics">
-            <Activity className="h-4 w-4" />
+            <Activity />
             Metrics
           </TabsTrigger>
           <TabsTrigger value="docs">
-            <Code className="h-4 w-4" />
+            <Code />
             API Docs
           </TabsTrigger>
           <TabsTrigger value="settings">
-            <Key className="h-4 w-4" />
+            <Key />
             Settings
           </TabsTrigger>
         </TabsList>
@@ -274,7 +283,7 @@ export default function EndpointPlaygroundPage() {
                     </>
                   ) : (
                     <>
-                      <Play className="h-4 w-4" />
+                      <Play />
                       Run Prediction
                     </>
                   )}
@@ -282,7 +291,7 @@ export default function EndpointPlaygroundPage() {
 
                 {endpoint.status !== "DEPLOYED" && (
                   <Alert>
-                    <AlertCircle className="h-4 w-4" />
+                    <AlertCircle />
                     <AlertDescription>
                       Endpoint must be deployed before testing
                     </AlertDescription>
@@ -291,7 +300,7 @@ export default function EndpointPlaygroundPage() {
 
                 {!endpoint.serviceUrl && endpoint.status === "DEPLOYED" && (
                   <Alert>
-                    <AlertCircle className="h-4 w-4" />
+                    <AlertCircle />
                     <AlertDescription>
                       Service URL not available yet
                     </AlertDescription>
@@ -379,6 +388,7 @@ export default function EndpointPlaygroundPage() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Endpoint URL</Label>
+
                 <div className="flex gap-2">
                   <Input
                     value={endpoint.serviceUrl || "Not deployed yet"}

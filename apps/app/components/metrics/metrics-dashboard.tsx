@@ -14,7 +14,12 @@ import {
   DollarSign,
   Users,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/tabs";
 import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui/components/spinner";
 import { Alert, AlertDescription } from "@repo/ui/components/alert";
@@ -33,9 +38,9 @@ import { toast } from "sonner";
 
 // Client-side utility functions (moved from cloud-run-metrics.ts to avoid Node.js imports)
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
@@ -99,9 +104,7 @@ export function MetricsDashboard() {
     return (
       <Alert>
         <Activity className="h-4 w-4" />
-        <AlertDescription>
-          {error || "Failed to load metrics"}
-        </AlertDescription>
+        <AlertDescription>{error || "Failed to load metrics"}</AlertDescription>
       </Alert>
     );
   }
@@ -130,18 +133,21 @@ export function MetricsDashboard() {
               <SelectItem value="168">Last 7 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+          >
             {refreshing ? <Spinner /> : "Refresh"}
           </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Request Count"
-          description="Total requests per second"
-          value={m.requestCount.summary.current}
+          title="Avg Requests"
+          description="Average requests per second"
+          value={m.requestCount.summary.average.toFixed(2)}
           summary={m.requestCount.summary}
           icon={Activity}
           unit=" req/s"
@@ -155,17 +161,17 @@ export function MetricsDashboard() {
           formatter={(v) => formatDuration(v)}
         />
         <MetricCard
-          title="CPU Usage"
-          description="Container CPU utilization"
-          value={m.cpuUtilization.summary.current}
+          title="Avg CPU"
+          description="Average CPU utilization"
+          value={m.cpuUtilization.summary.average.toFixed(2)}
           summary={m.cpuUtilization.summary}
           icon={Cpu}
           unit="%"
         />
         <MetricCard
-          title="Memory Usage"
-          description="Container memory utilization"
-          value={m.memoryUtilization.summary.current}
+          title="Avg Memory"
+          description="Average memory utilization"
+          value={m.memoryUtilization.summary.average.toFixed(2)}
           summary={m.memoryUtilization.summary}
           icon={HardDrive}
           unit="%"
@@ -187,18 +193,14 @@ export function MetricsDashboard() {
               description="Requests per second over time"
               data={m.requestCount.data}
               dataKey="value"
-              color="#3b82f6"
-              yAxisFormatter={(v) => v.toFixed(1)}
-              tooltipFormatter={(v) => `${v.toFixed(2)} req/s`}
+              color="var(--chart-1)"
             />
             <MetricLineChart
               title="Request Latency"
               description="Average response time"
               data={m.requestLatencies.data}
               dataKey="value"
-              color="#8b5cf6"
-              yAxisFormatter={(v) => formatDuration(v)}
-              tooltipFormatter={(v) => formatDuration(v)}
+              color="var(--chart-2)"
             />
           </div>
 
@@ -229,18 +231,14 @@ export function MetricsDashboard() {
               description="Percentage of allocated CPU used"
               data={m.cpuUtilization.data}
               dataKey="value"
-              color="#ef4444"
-              yAxisFormatter={(v) => `${v.toFixed(1)}%`}
-              tooltipFormatter={(v) => `${v.toFixed(2)}%`}
+              color="var(--chart-3)"
             />
             <MetricAreaChart
               title="Memory Utilization"
               description="Percentage of allocated memory used"
               data={m.memoryUtilization.data}
               dataKey="value"
-              color="#f59e0b"
-              yAxisFormatter={(v) => `${v.toFixed(1)}%`}
-              tooltipFormatter={(v) => `${v.toFixed(2)}%`}
+              color="var(--chart-4)"
             />
           </div>
 
@@ -250,14 +248,16 @@ export function MetricsDashboard() {
               description="Number of running containers"
               data={m.instanceCount.data}
               dataKey="value"
-              color="#10b981"
-              yAxisFormatter={(v) => v.toFixed(0)}
-              tooltipFormatter={(v) => `${v.toFixed(0)} instances`}
+              color="var(--chart-5)"
             />
             <MetricCard
               title="Billable Instance Time"
-              description="Total compute time billed"
-              value={formatDuration(m.billableTime.summary.current * 1000)}
+              description="Average compute time billed per minute"
+              value={
+                m.billableTime.summary.average > 0
+                  ? formatDuration(m.billableTime.summary.average * 1000)
+                  : "0s"
+              }
               summary={m.billableTime.summary}
               icon={DollarSign}
               formatter={(v) => formatDuration(v * 1000)}
@@ -272,18 +272,14 @@ export function MetricsDashboard() {
               description="Bytes sent per second"
               data={m.sentBytes.data}
               dataKey="value"
-              color="#06b6d4"
-              yAxisFormatter={(v) => formatBytes(v)}
-              tooltipFormatter={(v) => `${formatBytes(v)}/s`}
+              color="var(--chart-1)"
             />
             <MetricLineChart
               title="Network Received"
               description="Bytes received per second"
               data={m.receivedBytes.data}
               dataKey="value"
-              color="#8b5cf6"
-              yAxisFormatter={(v) => formatBytes(v)}
-              tooltipFormatter={(v) => `${formatBytes(v)}/s`}
+              color="var(--chart-2)"
             />
           </div>
 
@@ -292,7 +288,10 @@ export function MetricsDashboard() {
               title="Total Sent"
               description="Total bytes sent"
               value={formatBytes(
-                m.sentBytes.data.reduce((sum: number, p: any) => sum + p.value, 0)
+                m.sentBytes.data.reduce(
+                  (sum: number, p: any) => sum + p.value,
+                  0
+                )
               )}
               icon={Network}
             />
@@ -300,7 +299,10 @@ export function MetricsDashboard() {
               title="Total Received"
               description="Total bytes received"
               value={formatBytes(
-                m.receivedBytes.data.reduce((sum: number, p: any) => sum + p.value, 0)
+                m.receivedBytes.data.reduce(
+                  (sum: number, p: any) => sum + p.value,
+                  0
+                )
               )}
               icon={Network}
             />
@@ -314,18 +316,14 @@ export function MetricsDashboard() {
               description="Peak concurrent requests over time"
               data={m.maxConcurrentRequests.data}
               dataKey="value"
-              color="#ec4899"
-              yAxisFormatter={(v) => v.toFixed(0)}
-              tooltipFormatter={(v) => `${v.toFixed(0)} requests`}
+              color="var(--chart-3)"
             />
             <MetricLineChart
               title="Container Startup Latency"
               description="Time to start new container instances"
               data={m.startupLatency.data}
               dataKey="value"
-              color="#f59e0b"
-              yAxisFormatter={(v) => formatDuration(v)}
-              tooltipFormatter={(v) => formatDuration(v)}
+              color="var(--chart-4)"
             />
           </div>
 
@@ -336,7 +334,10 @@ export function MetricsDashboard() {
                 description="Request distribution"
                 value={
                   m.instanceCount.summary.average > 0
-                    ? (m.requestCount.summary.average / m.instanceCount.summary.average).toFixed(2)
+                    ? (
+                        m.requestCount.summary.average /
+                        m.instanceCount.summary.average
+                      ).toFixed(2)
                     : "0"
                 }
                 icon={Server}
@@ -354,7 +355,10 @@ export function MetricsDashboard() {
                 description="CPU efficiency"
                 value={
                   m.requestCount.summary.average > 0
-                    ? (m.cpuUtilization.summary.average / m.requestCount.summary.average).toFixed(2)
+                    ? (
+                        m.cpuUtilization.summary.average /
+                        m.requestCount.summary.average
+                      ).toFixed(2)
                     : "0"
                 }
                 icon={Cpu}
@@ -365,7 +369,10 @@ export function MetricsDashboard() {
                 description="Memory efficiency"
                 value={
                   m.requestCount.summary.average > 0
-                    ? (m.memoryUtilization.summary.average / m.requestCount.summary.average).toFixed(2)
+                    ? (
+                        m.memoryUtilization.summary.average /
+                        m.requestCount.summary.average
+                      ).toFixed(2)
                     : "0"
                 }
                 icon={HardDrive}

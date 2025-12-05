@@ -15,6 +15,7 @@ import {
   Calendar,
   AlertCircle,
   Terminal,
+  Activity,
 } from "lucide-react";
 import { Badge } from "@repo/ui/components/badge";
 import {
@@ -80,17 +81,17 @@ export default async function BillingPage({ params }: BillingPageProps) {
           <CardDescription>Your team's subscription details</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold">Beta Plan</h1>
+              <div>
+                <h1 className="text-lg font-bold">Beta Plan</h1>
                 <p className="text-muted-foreground text-sm text-balance">
                   Free during beta period
                 </p>
               </div>
               <Badge variant="secondary">Active</Badge>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">Endpoints</p>
                 <p className="text-2xl font-bold">{totalEndpoints}</p>

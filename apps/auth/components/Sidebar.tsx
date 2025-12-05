@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "@repo/auth";
+import { useSession } from "@repo/auth/client";
 import { cn } from "@repo/ui/lib/utils";
 import { Database, GlobeLock, Lock, User } from "lucide-react";
 import Link from "next/link";

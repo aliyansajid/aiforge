@@ -1,6 +1,10 @@
 import { getUserTeams } from "@/app/actions/team-actions";
 import { getTeamProjects } from "@/app/actions/project-actions";
-import { getUsageMetrics } from "@/app/actions/analytics-actions";
+import {
+  getUsageMetrics,
+  getRequestVolumeData,
+  getInfrastructureMetrics,
+} from "@/app/actions/analytics-actions";
 import { notFound } from "next/navigation";
 import {
   Card,
@@ -9,7 +13,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
-import { BarChart3, TrendingUp, DollarSign, Activity } from "lucide-react";
+import {
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  Activity,
+  Cpu,
+  Server,
+  MemoryStick,
+} from "lucide-react";
+import { RequestVolumeChart } from "@/components/analytics/request-volume-chart";
 
 interface UsagePageProps {
   params: Promise<{
@@ -48,20 +61,50 @@ export default async function UsagePage({ params }: UsagePageProps) {
     endpointBreakdown: [],
   };
 
+  // Get request volume time-series data
+  const requestVolumeResult = await getRequestVolumeData(
+    resolvedParams.teamSlug,
+    24
+  );
+  const requestVolumeData = requestVolumeResult.data ?? {
+    timeSeries: [],
+    totalRequests: 0,
+  };
+
+  console.log("[Usage Page] Request volume data:", {
+    success: requestVolumeResult.success,
+    dataPoints: requestVolumeData.timeSeries.length,
+    totalRequests: requestVolumeData.totalRequests,
+    firstPoint: requestVolumeData.timeSeries[0],
+  });
+
+  // Get infrastructure metrics
+  const infrastructureResult = await getInfrastructureMetrics(
+    resolvedParams.teamSlug,
+    1
+  );
+  const infrastructure = infrastructureResult.data ?? {
+    cpuUtilization: 0,
+    memoryUtilization: 0,
+    activeInstances: 0,
+    totalInstances: 0,
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Usage Analytics</h2>
-        <p className="text-muted-foreground">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold">Usage Analytics</h1>
+        <p className="text-muted-foreground text-sm text-balance">
           Monitor your API usage and endpoint performance
         </p>
       </div>
 
-      {/* Usage Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              Total Requests
+            </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -73,8 +116,10 @@ export default async function UsagePage({ params }: UsagePageProps) {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Endpoints</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              Active Endpoints
+            </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -84,19 +129,25 @@ export default async function UsagePage({ params }: UsagePageProps) {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              Avg Response Time
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{usageMetrics.avgResponseTime}ms</div>
+            <div className="text-2xl font-bold">
+              {usageMetrics.avgResponseTime}ms
+            </div>
             <p className="text-xs text-muted-foreground">Last 30 days</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estimated Cost</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              Estimated Cost
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -108,25 +159,79 @@ export default async function UsagePage({ params }: UsagePageProps) {
         </Card>
       </div>
 
-      {/* Usage Charts Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Request Volume</CardTitle>
-          <CardDescription>API requests over time</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
-            <div className="text-center">
-              <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                Usage analytics will appear here once you start making API requests
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <RequestVolumeChart data={requestVolumeData.timeSeries} />
 
-      {/* Endpoints Usage */}
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold">Cloud Run Infrastructure</h3>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                CPU Utilization
+              </CardTitle>
+              <Cpu className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {infrastructure.cpuUtilization}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Average across all instances
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                Memory Utilization
+              </CardTitle>
+              <MemoryStick className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {infrastructure.memoryUtilization}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Average across all instances
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                Active Instances
+              </CardTitle>
+              <Server className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {infrastructure.activeInstances}
+              </div>
+              <p className="text-xs text-muted-foreground">Currently running</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                Total Services
+              </CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {infrastructure.totalInstances}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Deployed endpoints
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Endpoint Usage</CardTitle>
@@ -134,7 +239,7 @@ export default async function UsagePage({ params }: UsagePageProps) {
         </CardHeader>
         <CardContent>
           {usageMetrics.endpointBreakdown.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {usageMetrics.endpointBreakdown.map((endpoint) => {
                 const percentage =
                   usageMetrics.totalRequests > 0

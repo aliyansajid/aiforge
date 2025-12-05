@@ -104,7 +104,16 @@ export async function getCloudRunMetric(
       }),
     };
 
+    console.log(`[CloudRun] Fetching metric: ${metricType} for service: ${serviceName}`);
+    console.log(`[CloudRun] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+
     const [timeSeries] = await monitoringClient.listTimeSeries(request);
+
+    console.log(`[CloudRun] Received ${timeSeries.length} time series for ${metricType}`);
+
+    if (timeSeries.length === 0) {
+      console.log(`[CloudRun] No data found for ${metricType}`);
+    }
 
     const dataPoints: MetricDataPoint[] = [];
 
@@ -128,9 +137,19 @@ export async function getCloudRunMetric(
     }
 
     // Sort by timestamp
-    return dataPoints.sort(
+    const sortedData = dataPoints.sort(
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     );
+
+    console.log(`[CloudRun] Returning ${sortedData.length} data points for ${metricType}`);
+    if (sortedData.length > 0) {
+      console.log(`[CloudRun] Sample data point:`, {
+        timestamp: sortedData[0].timestamp,
+        value: sortedData[0].value,
+      });
+    }
+
+    return sortedData;
   } catch (error: any) {
     // Suppress NOT_FOUND errors for startup_latency metric (expected for services without cold starts)
     const isStartupLatencyNotFound =
@@ -342,25 +361,46 @@ export async function getAllCloudRunMetrics(
 
 /**
  * Extract service name from Cloud Run service URL
+ * Cloud Run service names can be:
+ * - Old format: aiforge-{endpointId}
+ * - New format: model-{endpointId}
+ *
+ * URL format: https://model-cmi4tavmz0002aseaeyj1dl7f-n2v5xbqiba-el.a.run.app
+ * We need to extract: model-cmi4tavmz0002aseaeyj1dl7f (first 2 segments before the hash)
  */
 export function extractServiceName(serviceUrl: string): string | null {
   try {
     const url = new URL(serviceUrl);
     const hostname = url.hostname;
 
-    // Cloud Run URLs follow pattern: servicename-hash-region.a.run.app
+    // Split by '.' to get: ["model-cmi4tavmz0002aseaeyj1dl7f-n2v5xbqiba-el", "a", "run", "app"]
     const parts = hostname.split('.');
-    if (parts.length >= 4 && parts[parts.length - 2] === 'run') {
-      const serviceWithHash = parts[0];
-      // Remove the hash suffix (usually after last hyphen before region)
-      const lastHyphen = serviceWithHash.lastIndexOf('-');
-      if (lastHyphen > 0) {
-        return serviceWithHash.substring(0, lastHyphen);
-      }
-      return serviceWithHash;
+    if (parts.length < 3) return null;
+
+    // First part: model-cmi4tavmz0002aseaeyj1dl7f-n2v5xbqiba-el
+    const servicePart = parts[0];
+    if (!servicePart) return null;
+
+    // Our service naming: {prefix}-{endpointId}
+    // The URL adds a hash suffix: {prefix}-{endpointId}-{hash}-{region}
+    // We need to extract just: {prefix}-{endpointId}
+
+    // Split by hyphen to get segments
+    const segments = servicePart.split('-');
+
+    // The service name is always "{prefix}-{endpointId}" where prefix is "model" or "aiforge"
+    // endpointId is a cuid which is ~25 chars
+    // So we need the first 2 segments: prefix + endpointId
+    if (
+      segments.length >= 2 &&
+      (segments[0] === 'model' || segments[0] === 'aiforge')
+    ) {
+      return `${segments[0]}-${segments[1]}`;
     }
 
-    return null;
+    // Fallback: return the entire service part (might not work for metrics)
+    console.warn(`Could not extract service name from: ${serviceUrl}`);
+    return servicePart;
   } catch (error) {
     console.error('Error extracting service name from URL:', error);
     return null;

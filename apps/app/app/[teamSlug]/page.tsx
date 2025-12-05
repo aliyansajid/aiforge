@@ -3,6 +3,16 @@ import { getTeamProjects } from "@/app/actions/project-actions";
 import { notFound } from "next/navigation";
 import { ProjectCard } from "@/components/project-card";
 import { CreateProjectButton } from "@/components/create-project-button";
+import { FolderCode } from "lucide-react";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@repo/ui/src/components/empty";
+import { Card, CardContent } from "@repo/ui/src/components/card";
 
 interface ProjectsPageProps {
   params: Promise<{
@@ -43,22 +53,29 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
       </div>
 
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <div className="space-y-3">
-            <h3 className="text-2xl font-semibold">No projects yet</h3>
-            <p className="text-muted-foreground max-w-sm">
-              Get started by creating your first project to deploy and manage AI
-              models.
-            </p>
-            {canCreateProject && (
-              <div className="pt-4">
-                <CreateProjectButton teamId={currentTeam.id} />
-              </div>
-            )}
-          </div>
-        </div>
+        <Card>
+          <CardContent>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <FolderCode />
+                </EmptyMedia>
+                <EmptyTitle>No Projects Yet</EmptyTitle>
+                <EmptyDescription>
+                  You haven&apos;t created any projects yet. Get started by
+                  creating your first project.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                {canCreateProject && (
+                  <CreateProjectButton teamId={currentTeam.id} />
+                )}
+              </EmptyContent>
+            </Empty>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <ProjectCard
               key={project.id}

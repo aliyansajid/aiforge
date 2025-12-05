@@ -1,6 +1,9 @@
 import { getUserTeams } from "@/app/actions/team-actions";
 import { getTeamProjects } from "@/app/actions/project-actions";
-import { getPerformanceMetrics } from "@/app/actions/analytics-actions";
+import {
+  getPerformanceMetrics,
+  getResponseTimeData,
+} from "@/app/actions/analytics-actions";
 import { notFound } from "next/navigation";
 import {
   Card,
@@ -11,6 +14,7 @@ import {
 } from "@repo/ui/components/card";
 import { Zap, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { Badge } from "@repo/ui/components/badge";
+import { ResponseTimeChart } from "@/components/analytics/response-time-chart";
 
 interface PerformancePageProps {
   params: Promise<{
@@ -50,21 +54,38 @@ export default async function PerformancePage({
     endpointHealth: [],
   };
 
+  // Get response time time-series data
+  const responseTimeResult = await getResponseTimeData(
+    resolvedParams.teamSlug,
+    24
+  );
+  const responseTimeData = responseTimeResult.data ?? {
+    timeSeries: [],
+    avgLatency: 0,
+    p95Latency: 0,
+  };
+
+  console.log('[Performance Page] Response time data:', {
+    success: responseTimeResult.success,
+    dataPoints: responseTimeData.timeSeries.length,
+    avgLatency: responseTimeData.avgLatency,
+    firstPoint: responseTimeData.timeSeries[0],
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Performance Analytics</h2>
-        <p className="text-muted-foreground">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold">Performance Analytics</h1>
+        <p className="text-muted-foreground text-sm text-balance">
           Monitor endpoint performance and reliability
         </p>
       </div>
 
-      {/* Performance Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -75,10 +96,8 @@ export default async function PerformancePage({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg Latency
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Avg Latency</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -90,7 +109,7 @@ export default async function PerformancePage({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">P95 Latency</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -103,7 +122,7 @@ export default async function PerformancePage({
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -116,25 +135,8 @@ export default async function PerformancePage({
         </Card>
       </div>
 
-      {/* Performance Chart Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Response Time Trends</CardTitle>
-          <CardDescription>Average response time over the last 24 hours</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
-            <div className="text-center">
-              <Zap className="mx-auto h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                Performance metrics will appear here once you start making API requests
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ResponseTimeChart data={responseTimeData.timeSeries} />
 
-      {/* Endpoint Health */}
       <Card>
         <CardHeader>
           <CardTitle>Endpoint Health</CardTitle>
@@ -142,20 +144,28 @@ export default async function PerformancePage({
         </CardHeader>
         <CardContent>
           {performanceMetrics.endpointHealth.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {performanceMetrics.endpointHealth.map((endpoint) => {
                 const getStatusIcon = () => {
                   switch (endpoint.status) {
                     case "healthy":
-                      return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+                      return (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      );
                     case "degraded":
-                      return <AlertCircle className="h-5 w-5 text-yellow-600" />;
+                      return (
+                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      );
                     case "down":
-                      return <XCircle className="h-5 w-5 text-red-600" />;
+                      return <XCircle className="h-5 w-5 text-red-500" />;
                   }
                 };
 
-                const getStatusVariant = (): "default" | "secondary" | "destructive" | "outline" => {
+                const getStatusVariant = ():
+                  | "default"
+                  | "secondary"
+                  | "destructive"
+                  | "outline" => {
                   switch (endpoint.status) {
                     case "healthy":
                       return "default";
@@ -191,8 +201,8 @@ export default async function PerformancePage({
                           {endpoint.errorRate > 0
                             ? `${endpoint.errorRate.toFixed(1)}% errors`
                             : endpoint.lastRequest
-                            ? "No errors"
-                            : "Not tested"}
+                              ? "No errors"
+                              : "Not tested"}
                         </p>
                       </div>
                       <Badge variant={getStatusVariant()}>

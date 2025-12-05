@@ -53,9 +53,9 @@ export default async function SettingsLayout({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm text-balance">
           Manage your team settings and preferences
         </p>
       </div>

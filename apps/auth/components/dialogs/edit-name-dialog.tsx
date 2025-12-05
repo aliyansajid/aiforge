@@ -8,7 +8,7 @@ import { Form } from "@repo/ui/components/form";
 import { personalInfoSchema } from "@/schemas/auth";
 import { updateName } from "@/actions/account-actions";
 import { toast } from "sonner";
-import { useSession } from "@repo/auth";
+import { useSession } from "@repo/auth/client";
 import { ButtonVariant, CustomButton } from "@repo/ui/components/custom-button";
 import {
   Dialog,

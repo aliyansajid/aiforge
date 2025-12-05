@@ -31,6 +31,22 @@ try {
 
 const bucket = storage.bucket(GCS_BUCKET_NAME);
 
+async function generateSignedUrl(filePath: string): Promise<string> {
+  try {
+    const file = bucket.file(filePath);
+    const [url] = await file.getSignedUrl({
+      version: "v4",
+      action: "read",
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    return url;
+  } catch (error) {
+    console.error("Error generating signed URL for", filePath, ":", error);
+    // Return empty string to fall back to gradient
+    return "";
+  }
+}
+
 export async function getUserTeams(): Promise<ActionResponse<Team[]>> {
   const session = await auth();
 
@@ -55,13 +71,25 @@ export async function getUserTeams(): Promise<ActionResponse<Team[]>> {
       },
     });
 
-    const teamsData = teamMembers.map((tm) => ({
-      id: tm.team.id,
-      name: tm.team.name,
-      slug: tm.team.slug,
-      image: tm.team.image,
-      role: tm.role,
-    }));
+    const teamsData = await Promise.all(
+      teamMembers.map(async (tm) => {
+        let imageUrl = tm.team.image;
+
+        // Generate signed URL if image exists in GCS
+        if (imageUrl && imageUrl.startsWith(`gs://${GCS_BUCKET_NAME}/`)) {
+          const filePath = imageUrl.replace(`gs://${GCS_BUCKET_NAME}/`, "");
+          imageUrl = await generateSignedUrl(filePath);
+        }
+
+        return {
+          id: tm.team.id,
+          name: tm.team.name,
+          slug: tm.team.slug,
+          image: imageUrl,
+          role: tm.role,
+        };
+      })
+    );
 
     return {
       success: true,
@@ -95,8 +123,9 @@ async function uploadFileToGCS(file: File, teamSlug: string): Promise<string> {
       },
     });
 
-    const publicUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${destination}`;
-    return publicUrl;
+    // Return GCS path format so we can generate signed URLs later
+    const gcsPath = `gs://${GCS_BUCKET_NAME}/${destination}`;
+    return gcsPath;
   } catch (err) {
     console.error("Error uploading file to GCS:", err);
     throw new Error("Failed to upload image. Please try again.");

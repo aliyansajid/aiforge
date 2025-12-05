@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { resetPassword, verifyOtp } from "@/actions/auth-actions";
 import { otpSchema, resetPasswordSchema } from "@/schemas/auth";
-import { signIn } from "@repo/auth";
+import { signIn } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui/components/spinner";
 

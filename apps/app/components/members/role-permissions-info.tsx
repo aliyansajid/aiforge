@@ -41,11 +41,11 @@ export function RolePermissionsInfo() {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">
-          <Info className="mr-2 h-4 w-4" />
+          <Info />
           Role Permissions
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Role Permissions Guide</DialogTitle>
           <DialogDescription>
@@ -97,12 +97,12 @@ export function RolePermissionsInfo() {
           })}
         </div>
 
-        <div className="mt-4 rounded-lg bg-muted p-4">
+        <div className="rounded-lg bg-muted p-4">
           <p className="text-sm text-muted-foreground">
             <strong>Note:</strong> Team owners have full control over all team
             resources. Admins can manage members and projects but cannot modify
-            team settings or billing. Members have limited permissions focused on
-            creating and managing their own endpoints.
+            team settings or billing. Members have limited permissions focused
+            on creating and managing their own endpoints.
           </p>
         </div>
       </DialogContent>

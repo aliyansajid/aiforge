@@ -1,20 +1,27 @@
 "use client";
 
 import {
-  Calculator,
-  Calendar,
-  CreditCard,
   Moon,
   Search,
-  Settings,
-  Smile,
   Sun,
   User,
+  Mail,
+  Lock,
+  Shield,
+  Smartphone,
+  RotateCcw,
+  Users,
+  LogOut,
+  Database,
+  UserCircle,
+  Command,
+  LayoutDashboard,
+  MonitorSmartphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
-import { signOut, useSession } from "@repo/auth";
+import { signOut, useSession } from "@repo/auth/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,17 +43,22 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
 } from "@repo/ui/components/command";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const Header = () => {
   const { setTheme } = useTheme();
   const { data: session } = useSession();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
+    // Detect platform on client side only
+    setIsMac(navigator.userAgent.toUpperCase().indexOf("MAC") >= 0);
+
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -57,51 +69,130 @@ const Header = () => {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  const handleCommandSelect = (action: () => void) => {
+    setOpen(false);
+    action();
+  };
+
   return (
     <header className="bg-background flex items-center justify-between sticky z-50 top-0 px-4 py-3">
-      <Image src={"/logo-white.png"} alt="logo" height={"70"} width={"70"} />
+      <Image src={"/logo-light.svg"} alt="logo" height={"40"} width={"40"} />
       <div className="flex items-center gap-2">
         <Button
           variant={"outline"}
           className="rounded-full gap-4 transition-all duration-150 hover:gap-8"
+          onClick={() => setOpen(true)}
         >
           <Search />
-          <Badge className="bg-muted text-muted-foreground">Ctrl+k</Badge>
+          <Badge className="bg-muted text-muted-foreground">
+            {isMac ? "⌘K" : "Ctrl+K"}
+          </Badge>
         </Button>
+
         <CommandDialog open={open} onOpenChange={setOpen}>
           <CommandInput placeholder="Type a command or search..." />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="Suggestions">
-              <CommandItem>
-                <Calendar />
-                <span>Calendar</span>
+
+            {/* Account Section */}
+            <CommandGroup heading="Account">
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/account"))
+                }
+              >
+                <UserCircle className="mr-2 h-4 w-4" />
+                <span>View Account</span>
               </CommandItem>
-              <CommandItem>
-                <Smile />
-                <span>Search Emoji</span>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/account"))
+                }
+              >
+                <User className="mr-2 h-4 w-4" />
+                <span>Update Name</span>
               </CommandItem>
-              <CommandItem>
-                <Calculator />
-                <span>Calculator</span>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/account"))
+                }
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                <span>Update Email</span>
               </CommandItem>
             </CommandGroup>
+
             <CommandSeparator />
-            <CommandGroup heading="Settings">
-              <CommandItem>
-                <User />
-                <span>Profile</span>
-                <CommandShortcut>⌘P</CommandShortcut>
+
+            {/* Security Section */}
+            <CommandGroup heading="Security">
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/security"))
+                }
+              >
+                <Lock className="mr-2 h-4 w-4" />
+                <span>Update Password</span>
               </CommandItem>
-              <CommandItem>
-                <CreditCard />
-                <span>Billing</span>
-                <CommandShortcut>⌘B</CommandShortcut>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() =>
+                    router.push("/security/mfa/add-device")
+                  )
+                }
+              >
+                <Smartphone className="mr-2 h-4 w-4" />
+                <span>Add MFA Device</span>
               </CommandItem>
-              <CommandItem>
-                <Settings />
-                <span>Settings</span>
-                <CommandShortcut>⌘S</CommandShortcut>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/security"))
+                }
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Manage MFA Devices</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/security"))
+                }
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                <span>Regenerate Recovery Codes</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandSeparator />
+
+            {/* Sessions Section */}
+            <CommandGroup heading="Sessions">
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => router.push("/sessions"))
+                }
+              >
+                <Users className="mr-2 h-4 w-4" />
+                <span>View Sessions</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() =>
+                  handleCommandSelect(() => signOut({ redirect: false }))
+                }
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign Out</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandSeparator />
+
+            {/* Data Section */}
+            <CommandGroup heading="Data">
+              <CommandItem
+                onSelect={() => handleCommandSelect(() => router.push("/data"))}
+              >
+                <Database className="mr-2 h-4 w-4" />
+                <span>Manage Account Data</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
@@ -117,12 +208,15 @@ const Header = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setTheme("light")}>
+              <Sun />
               Light
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <Moon />
               Dark
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("system")}>
+              <MonitorSmartphone />
               System
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -138,7 +232,7 @@ const Header = () => {
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
@@ -159,8 +253,19 @@ const Header = () => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setOpen(true)}>
+              <Command />
+              Command Menu
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => window.open(process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001", "_blank")}
+            >
+              <LayoutDashboard />
+              AIForge
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ redirect: false })}>
+              <LogOut />
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

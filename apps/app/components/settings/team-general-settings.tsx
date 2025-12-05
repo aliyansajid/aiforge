@@ -5,11 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Team } from "@/types";
 import { updateTeamSettings } from "@/app/actions/team-actions";
+import { Spinner } from "@repo/ui/src/components/spinner";
 
 interface TeamGeneralSettingsProps {
   team: Team;
@@ -89,7 +94,6 @@ export function TeamGeneralSettings({
 
   return (
     <div className="space-y-6">
-      {/* Avatar Section */}
       <div className="flex items-center gap-6">
         <Avatar className="h-24 w-24">
           <AvatarImage src={avatarPreview || undefined} />
@@ -113,7 +117,7 @@ export function TeamGeneralSettings({
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className="mr-2 h-4 w-4" />
+                  <Upload />
                   Upload Image
                 </Button>
                 <input
@@ -136,7 +140,6 @@ export function TeamGeneralSettings({
         </div>
       </div>
 
-      {/* Team Name */}
       <div className="space-y-2">
         <Label htmlFor="team-name">Team Name</Label>
         <Input
@@ -151,7 +154,6 @@ export function TeamGeneralSettings({
         </p>
       </div>
 
-      {/* Team Slug */}
       <div className="space-y-2">
         <Label htmlFor="team-slug">Team Slug</Label>
         <Input
@@ -171,32 +173,18 @@ export function TeamGeneralSettings({
         </p>
       </div>
 
-      {/* Team ID (Read-only) */}
       <div className="space-y-2">
         <Label htmlFor="team-id">Team ID</Label>
-        <Input
-          id="team-id"
-          value={team.id}
-          disabled
-          className="bg-muted font-mono"
-        />
+        <Input id="team-id" value={team.id} disabled />
         <p className="text-xs text-muted-foreground">
-          Your team's unique identifier (read-only)
+          Your team's unique identifier
         </p>
       </div>
 
-      {/* Save Button */}
       {canEdit && (
         <div className="flex items-center gap-3">
           <Button onClick={handleSave} disabled={isLoading || !hasChanges}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
+            {isLoading ? <Spinner /> : "Save Changes"}
           </Button>
           {hasChanges && (
             <p className="text-sm text-muted-foreground">

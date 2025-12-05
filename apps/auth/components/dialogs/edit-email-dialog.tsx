@@ -2,7 +2,7 @@
 
 import z from "zod";
 import { toast } from "sonner";
-import { signOut } from "@repo/auth";
+import { signOut } from "@repo/auth/client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";

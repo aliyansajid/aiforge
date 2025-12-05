@@ -24,6 +24,7 @@ import { UserPlus } from "lucide-react";
 import { inviteTeamMember } from "@/app/actions/member-actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Spinner } from "@repo/ui/src/components/spinner";
 
 interface InviteMemberButtonProps {
   teamSlug: string;
@@ -79,7 +80,7 @@ export function InviteMemberButton({ teamSlug }: InviteMemberButtonProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input
@@ -119,7 +120,7 @@ export function InviteMemberButton({ teamSlug }: InviteMemberButtonProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Sending..." : "Send Invitation"}
+              {isLoading ? <Spinner /> : "Send Invitation"}
             </Button>
           </DialogFooter>
         </form>

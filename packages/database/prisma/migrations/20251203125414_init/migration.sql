@@ -10,6 +10,18 @@ CREATE TYPE "TeamRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 -- CreateEnum
 CREATE TYPE "InvitationStatus" AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'CANCELLED');
 
+-- CreateEnum
+CREATE TYPE "EndpointAccessType" AS ENUM ('PUBLIC', 'PRIVATE', 'PAID');
+
+-- CreateEnum
+CREATE TYPE "EndpointStatus" AS ENUM ('UPLOADING', 'BUILDING', 'DEPLOYING', 'DEPLOYED', 'FAILED', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "InputType" AS ENUM ('JSON', 'IMAGE', 'TEXT', 'AUDIO', 'VIDEO', 'FILE');
+
+-- CreateEnum
+CREATE TYPE "DeploymentType" AS ENUM ('SINGLE_FILE', 'ZIP_ARCHIVE', 'GIT_REPOSITORY');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -114,7 +126,7 @@ CREATE TABLE "Team" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
-    "icon" TEXT NOT NULL DEFAULT 'Users',
+    "image" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -159,6 +171,62 @@ CREATE TABLE "Project" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Endpoint" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT,
+    "projectId" TEXT NOT NULL,
+    "createdBy" TEXT NOT NULL,
+    "framework" TEXT NOT NULL,
+    "inputType" "InputType" NOT NULL DEFAULT 'JSON',
+    "deploymentType" "DeploymentType" NOT NULL DEFAULT 'SINGLE_FILE',
+    "gcsModelPath" TEXT,
+    "gcsRequirementsPath" TEXT,
+    "gcsInferencePath" TEXT,
+    "gcsArchivePath" TEXT,
+    "gitRepoUrl" TEXT,
+    "gitBranch" TEXT,
+    "gitCommitSha" TEXT,
+    "gitAccessToken" TEXT,
+    "imageUri" TEXT,
+    "serviceUrl" TEXT,
+    "apiKey" TEXT NOT NULL,
+    "accessType" "EndpointAccessType" NOT NULL DEFAULT 'PRIVATE',
+    "status" "EndpointStatus" NOT NULL DEFAULT 'UPLOADING',
+    "inputTokenPrice" DECIMAL(10,6),
+    "outputTokenPrice" DECIMAL(10,6),
+    "pricePerRequest" DECIMAL(10,4),
+    "errorMessage" TEXT,
+    "buildLogs" TEXT,
+    "deployedAt" TIMESTAMP(3),
+    "lastUsedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Endpoint_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ApiUsage" (
+    "id" TEXT NOT NULL,
+    "endpointId" TEXT NOT NULL,
+    "method" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "statusCode" INTEGER NOT NULL,
+    "responseTime" INTEGER NOT NULL,
+    "inputTokens" INTEGER,
+    "outputTokens" INTEGER,
+    "apiKey" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "cost" DECIMAL(10,6),
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ApiUsage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -224,6 +292,42 @@ CREATE INDEX "Project_slug_idx" ON "Project"("slug");
 -- CreateIndex
 CREATE UNIQUE INDEX "Project_teamId_slug_key" ON "Project"("teamId", "slug");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Endpoint_apiKey_key" ON "Endpoint"("apiKey");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_projectId_idx" ON "Endpoint"("projectId");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_slug_idx" ON "Endpoint"("slug");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_status_idx" ON "Endpoint"("status");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_apiKey_idx" ON "Endpoint"("apiKey");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_createdBy_idx" ON "Endpoint"("createdBy");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_accessType_idx" ON "Endpoint"("accessType");
+
+-- CreateIndex
+CREATE INDEX "Endpoint_deploymentType_idx" ON "Endpoint"("deploymentType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Endpoint_projectId_slug_key" ON "Endpoint"("projectId", "slug");
+
+-- CreateIndex
+CREATE INDEX "ApiUsage_endpointId_idx" ON "ApiUsage"("endpointId");
+
+-- CreateIndex
+CREATE INDEX "ApiUsage_timestamp_idx" ON "ApiUsage"("timestamp");
+
+-- CreateIndex
+CREATE INDEX "ApiUsage_apiKey_idx" ON "ApiUsage"("apiKey");
+
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -250,3 +354,12 @@ ALTER TABLE "TeamInvitation" ADD CONSTRAINT "TeamInvitation_invitedBy_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Endpoint" ADD CONSTRAINT "Endpoint_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Endpoint" ADD CONSTRAINT "Endpoint_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApiUsage" ADD CONSTRAINT "ApiUsage_endpointId_fkey" FOREIGN KEY ("endpointId") REFERENCES "Endpoint"("id") ON DELETE CASCADE ON UPDATE CASCADE;

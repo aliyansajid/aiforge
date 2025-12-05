@@ -14,11 +14,19 @@ import {
   Activity,
   TrendingUp,
   Users,
-  Clock,
+  FolderCode,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@repo/ui/src/components/empty";
 
 interface DashboardPageProps {
   params: Promise<{
@@ -59,17 +67,16 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground text-sm text-balance">
           Welcome back to {currentTeam.name}
         </p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
               Total Projects
             </CardTitle>
@@ -77,14 +84,12 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalProjects}</div>
-            <p className="text-xs text-muted-foreground">
-              Active ML projects
-            </p>
+            <p className="text-xs text-muted-foreground">Active ML projects</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
               Total Endpoints
             </CardTitle>
@@ -92,14 +97,12 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalEndpoints}</div>
-            <p className="text-xs text-muted-foreground">
-              Deployed models
-            </p>
+            <p className="text-xs text-muted-foreground">Deployed models</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Team Members</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -112,21 +115,18 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Your Role</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentTeam.role}</div>
-            <p className="text-xs text-muted-foreground">
-              Team access level
-            </p>
+            <p className="text-xs text-muted-foreground">Team access level</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Projects */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent Projects</CardTitle>
@@ -136,7 +136,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           </CardHeader>
           <CardContent>
             {recentProjects.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {recentProjects.map((project) => (
                   <Link
                     key={project.id}
@@ -154,7 +154,6 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                         </p>
                       </div>
                     </div>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
                   </Link>
                 ))}
                 <Link href={`/${resolvedParams.teamSlug}`}>
@@ -164,88 +163,95 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                 </Link>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Boxes className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  No projects yet
-                </p>
-                <Link href={`/${resolvedParams.teamSlug}`}>
-                  <Button>Create Your First Project</Button>
-                </Link>
-              </div>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <FolderCode />
+                  </EmptyMedia>
+                  <EmptyTitle>No Projects Yet</EmptyTitle>
+                  <EmptyDescription>
+                    You haven&apos;t created any projects yet. Get started by
+                    creating your first project.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button>Create Project</Button>
+                </EmptyContent>
+              </Empty>
             )}
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Common tasks and shortcuts</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Link href={`/${resolvedParams.teamSlug}`}>
+          <CardContent className="flex flex-col gap-3">
+            <Link href={`/${resolvedParams.teamSlug}`}>
+              <Button variant="outline" className="w-full justify-start">
+                <Boxes />
+                View All Projects
+              </Button>
+            </Link>
+            {["OWNER", "ADMIN"].includes(currentTeam.role) && (
+              <Link href={`/${resolvedParams.teamSlug}/settings/members`}>
                 <Button variant="outline" className="w-full justify-start">
-                  <Boxes className="mr-2 h-4 w-4" />
-                  View All Projects
+                  <Users />
+                  Manage Team Members
                 </Button>
               </Link>
-              {["OWNER", "ADMIN"].includes(currentTeam.role) && (
-                <Link href={`/${resolvedParams.teamSlug}/settings/members`}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="mr-2 h-4 w-4" />
-                    Manage Team Members
-                  </Button>
-                </Link>
-              )}
-              <Link href={`/${resolvedParams.teamSlug}/analytics/usage`}>
+            )}
+            <Link href={`/${resolvedParams.teamSlug}/analytics/usage`}>
+              <Button variant="outline" className="w-full justify-start">
+                <TrendingUp />
+                View Analytics
+              </Button>
+            </Link>
+            {currentTeam.role === "OWNER" && (
+              <Link href={`/${resolvedParams.teamSlug}/settings/billing`}>
                 <Button variant="outline" className="w-full justify-start">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  View Analytics
+                  <Activity />
+                  Billing & Usage
                 </Button>
               </Link>
-              {currentTeam.role === "OWNER" && (
-                <Link href={`/${resolvedParams.teamSlug}/settings/billing`}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Activity className="mr-2 h-4 w-4" />
-                    Billing & Usage
-                  </Button>
-                </Link>
-              )}
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Team Info */}
       <Card>
         <CardHeader>
           <CardTitle>Team Information</CardTitle>
           <CardDescription>Details about your team</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">Team Name</p>
-              <p className="text-sm text-muted-foreground">{currentTeam.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentTeam.name}
+              </p>
             </div>
-            <div>
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">Your Role</p>
-              <Badge variant={currentTeam.role === "OWNER" ? "default" : "secondary"}>
+              <Badge
+                variant={currentTeam.role === "OWNER" ? "default" : "secondary"}
+              >
                 {currentTeam.role}
               </Badge>
             </div>
-            <div>
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">Team Slug</p>
-              <p className="text-sm text-muted-foreground font-mono">
+              <p className="text-sm text-muted-foreground">
                 {currentTeam.slug}
               </p>
             </div>
-            <div>
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">Members</p>
               <p className="text-sm text-muted-foreground">
-                {teamMembersCount} {teamMembersCount === 1 ? "member" : "members"}
+                {teamMembersCount}&nbsp;
+                {teamMembersCount === 1 ? "member" : "members"}
               </p>
             </div>
           </div>

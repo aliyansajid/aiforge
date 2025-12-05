@@ -53,7 +53,7 @@ export default async function GeneralSettingsPage({
           <CardTitle>Team Information</CardTitle>
           <CardDescription>
             {canEdit
-              ? "Update your team's name, slug, and avatar"
+              ? "Update your team's information"
               : "View your team's information"}
           </CardDescription>
         </CardHeader>

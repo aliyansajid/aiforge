@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@repo/ui/components/button";
-import { Plus } from "lucide-react";
+import { Plus, PlusCircle } from "lucide-react";
 import { CreateProjectDialog } from "./dialogs/create-project-dialog";
 
 interface CreateProjectButtonProps {
@@ -15,7 +15,7 @@ export function CreateProjectButton({ teamId }: CreateProjectButtonProps) {
   return (
     <>
       <Button onClick={() => setIsDialogOpen(true)}>
-        <Plus />
+        <PlusCircle />
         Create Project
       </Button>
 

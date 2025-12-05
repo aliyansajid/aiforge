@@ -75,6 +75,10 @@ export async function getEndpointMetrics(
     // Extract service name from Cloud Run URL
     const serviceName = extractServiceName(endpoint.serviceUrl);
 
+    console.log(`[Metrics] Endpoint: ${endpoint.name}`);
+    console.log(`[Metrics] Service URL: ${endpoint.serviceUrl}`);
+    console.log(`[Metrics] Extracted service name: ${serviceName}`);
+
     if (!serviceName) {
       return {
         success: false,

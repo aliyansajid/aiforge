@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { loginSchema } from "@/schemas/auth";
-import { signIn } from "@repo/auth";
+import { signIn } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Separator } from "@repo/ui/components/separator";
 import GoogleAuthButton from "../GoogleAuthButton";
@@ -68,7 +68,7 @@ const LoginForm = () => {
     startTransition(async () => {
       try {
         const searchParams = new URLSearchParams(window.location.search);
-        const callbackUrl = searchParams.get("callbackUrl") || "/";
+        const callbackUrl = searchParams.get("callbackUrl") || process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
 
         const response = await signIn("credentials", {
           email: values.email,
@@ -79,7 +79,8 @@ const LoginForm = () => {
 
         if (!response?.error) {
           await captureSessionInfo();
-          router.push(callbackUrl);
+          // Redirect to AIForge dashboard
+          window.location.href = callbackUrl;
         } else {
           toast.error("Invalid credentials");
         }

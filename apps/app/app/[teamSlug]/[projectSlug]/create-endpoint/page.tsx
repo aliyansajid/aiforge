@@ -23,9 +23,9 @@ import {
 } from "@repo/ui/src/components/custom-form-field";
 import { SelectItem } from "@repo/ui/components/select";
 import { Separator } from "@repo/ui/components/separator";
-import { Brain } from "lucide-react";
+import { Bot, Brain } from "lucide-react";
 import { toast } from "sonner";
-import { DeploymentStatus } from "@/components/deployment-status";
+import { DeploymentProgress } from "@/components/deployment-progress";
 import { Spinner } from "@repo/ui/src/components/spinner";
 import { ModelConfigGenerator } from "@/components/model-config-generator";
 
@@ -85,6 +85,7 @@ const CreateEndpoint = () => {
 
   async function onSubmit(data: z.infer<typeof endpointSchema>) {
     setIsSubmitting(true);
+    setDeploymentStarted(true); // Start showing deployment status immediately
 
     try {
       // Get project and user IDs from server
@@ -95,6 +96,8 @@ const CreateEndpoint = () => {
 
       if (!contextResult.success || !contextResult.data) {
         toast.error(contextResult.message || "Failed to get project context");
+        setDeploymentStarted(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -126,22 +129,21 @@ const CreateEndpoint = () => {
       });
 
       setEndpointId(result.endpointId);
-      setDeploymentStarted(true);
-
-      toast.success("Deployment started! Monitoring progress...", {
-        duration: 3000,
-      });
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : "Failed to create endpoint. Please try again."
       );
+      setDeploymentStarted(false);
       setIsSubmitting(false);
     }
   }
 
-  const handleDeploymentComplete = () => {
+  const handleDeploymentComplete = (data: {
+    serviceUrl?: string;
+    apiKey?: string;
+  }) => {
     toast.success("Deployment completed successfully!", {
       duration: 5000,
     });
@@ -155,35 +157,12 @@ const CreateEndpoint = () => {
     setIsSubmitting(false);
   };
 
-  if (deploymentStarted && endpointId) {
-    return (
-      <div className="flex flex-col gap-6 w-1/2 mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-muted">
-            <Brain className="h-8 w-8 text-primary" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold">Deploying Your Model</h1>
-            <p className="text-muted-foreground text-sm text-balance">
-              Please wait while we deploy your model to the cloud
-            </p>
-          </div>
-        </div>
-
-        <DeploymentStatus
-          endpointId={endpointId}
-          onComplete={handleDeploymentComplete}
-          onError={handleDeploymentError}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6 w-1/2 mx-auto">
-      <div className="flex items-center gap-3">
+    <div className="flex justify-center">
+      <div className="w-1/2 flex flex-col gap-6">
+        <div className="flex items-center gap-3">
         <div className="p-3 rounded-lg bg-muted">
-          <Brain className="h-8 w-8 text-primary" />
+          <Bot className="h-8 w-8 text-primary" />
         </div>
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold">Deploy New Model</h1>
@@ -209,7 +188,7 @@ const CreateEndpoint = () => {
                 inputType="text"
                 name="name"
                 label="Endpoint Name"
-                placeholder="e.g., Image Classifier v1"
+                placeholder="e.g. Image Classifier v1"
                 disabled={isSubmitting}
               />
 
@@ -232,7 +211,6 @@ const CreateEndpoint = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Deployment Type Selector */}
               <div className="flex gap-3">
                 <Button
                   type="button"
@@ -272,7 +250,6 @@ const CreateEndpoint = () => {
                 </Button>
               </div>
 
-              {/* Single File Upload */}
               {deploymentType === "single" && (
                 <div className="space-y-6">
                   <CustomFormField
@@ -307,9 +284,8 @@ const CreateEndpoint = () => {
                 </div>
               )}
 
-              {/* ZIP Archive Upload */}
               {deploymentType === "zip" && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <CustomFormField
                     control={form.control}
                     fieldType={FormFieldType.INPUT}
@@ -320,36 +296,33 @@ const CreateEndpoint = () => {
                     disabled={isSubmitting}
                   />
 
-                  {/* CRITICAL REQUIREMENT */}
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-md border-2 border-blue-300 dark:border-blue-700">
                     <div className="flex items-start gap-3">
-                      <div className="text-2xl">📋</div>
                       <div className="flex-1 space-y-3">
-                        <div>
+                        <div className="flex flex-col gap-1">
                           <p className="font-bold text-blue-900 dark:text-blue-100">
                             REQUIRED: model_config.json
                           </p>
-                          <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                            Your ZIP must include a{" "}
+                          <p className="text-sm text-blue-800 dark:text-blue-200">
+                            Your ZIP must include a&nbsp;
                             <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded font-mono text-xs">
                               model_config.json
-                            </code>{" "}
-                            file at the root. This tells us how to load and use your model.
+                            </code>
+                            &nbsp; file at the root. This tells us how to load
+                            and use your model.
                           </p>
                         </div>
 
-                        {/* Template Generator Button */}
                         <div className="pt-2">
                           <ModelConfigGenerator />
                         </div>
 
-                        {/* Example Structure */}
                         <details className="mt-3">
                           <summary className="cursor-pointer text-sm font-semibold text-blue-900 dark:text-blue-100 hover:underline">
                             Show example ZIP structure
                           </summary>
                           <pre className="mt-2 bg-blue-100 dark:bg-blue-900 p-3 rounded text-xs font-mono overflow-x-auto">
-{`my-model.zip/
+                            {`my-model.zip/
 ├── model_config.json  ← Required!
 ├── inference.py       ← Your entry point
 ├── model.pkl          ← Your model
@@ -360,7 +333,6 @@ const CreateEndpoint = () => {
                           </pre>
                         </details>
 
-                        {/* What it should contain */}
                         <details>
                           <summary className="cursor-pointer text-sm font-semibold text-blue-900 dark:text-blue-100 hover:underline">
                             What should model_config.json contain?
@@ -369,19 +341,24 @@ const CreateEndpoint = () => {
                             <p className="font-medium">Required fields:</p>
                             <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
                               <li>
-                                <strong>entry_point:</strong> Your Python file (e.g., "inference.py")
+                                <strong>entry_point:</strong> Your Python file
+                                (e.g., "inference.py")
                               </li>
                               <li>
-                                <strong>model_file:</strong> Your model file (e.g., "model.pkl")
+                                <strong>model_file:</strong> Your model file
+                                (e.g., "model.pkl")
                               </li>
                               <li>
-                                <strong>framework:</strong> "sklearn", "pytorch", "tensorflow", "onnx", or "custom"
+                                <strong>framework:</strong> "sklearn",
+                                "pytorch", "tensorflow", "onnx", or "custom"
                               </li>
                               <li>
-                                <strong>load:</strong> Function to load your model
+                                <strong>load:</strong> Function to load your
+                                model
                               </li>
                               <li>
-                                <strong>predict:</strong> Function to make predictions
+                                <strong>predict:</strong> Function to make
+                                predictions
                               </li>
                             </ul>
                           </div>
@@ -390,32 +367,34 @@ const CreateEndpoint = () => {
                     </div>
                   </div>
 
-                  {/* Additional Info */}
                   <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
                     <p className="font-medium mb-2">Best Practices:</p>
                     <ul className="list-disc list-inside space-y-1 ml-2">
                       <li>
-                        <strong>Always include requirements.txt</strong> with exact versions from training
+                        <strong>Always include requirements.txt</strong> with
+                        exact versions from training
                       </li>
                       <li>Keep ZIP under 2GB for faster deployments</li>
                       <li>Don't include virtual environments (venv/, env/)</li>
-                      <li>Remove unnecessary files (.git/, __pycache__/, .DS_Store)</li>
+                      <li>
+                        Remove unnecessary files (.git/, __pycache__/,
+                        .DS_Store)
+                      </li>
                       <li>Test your model_config.json matches your files</li>
                     </ul>
                   </div>
                 </div>
               )}
 
-              {/* GitHub Repository */}
               {deploymentType === "git" && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <CustomFormField
                     control={form.control}
                     fieldType={FormFieldType.INPUT}
                     inputType="text"
                     name="gitRepoUrl"
                     label="Repository URL"
-                    placeholder="https://github.com/username/repo"
+                    placeholder="e.g. https://github.com/username/repo"
                     disabled={isSubmitting}
                   />
 
@@ -426,7 +405,7 @@ const CreateEndpoint = () => {
                       inputType="text"
                       name="gitBranch"
                       label="Branch (Optional)"
-                      placeholder="main"
+                      placeholder="e.g. main"
                       disabled={isSubmitting}
                     />
 
@@ -436,7 +415,7 @@ const CreateEndpoint = () => {
                       inputType="text"
                       name="gitCommit"
                       label="Commit SHA (Optional)"
-                      placeholder="abc123..."
+                      placeholder="e.g. abc123..."
                       disabled={isSubmitting}
                     />
                   </div>
@@ -447,7 +426,7 @@ const CreateEndpoint = () => {
                     inputType="password"
                     name="gitAccessToken"
                     label="Access Token (for private repos)"
-                    placeholder="ghp_xxxxx..."
+                    placeholder="e.g. ghp_xxxxx..."
                     disabled={isSubmitting}
                   />
 
@@ -512,7 +491,7 @@ const CreateEndpoint = () => {
                     inputType="number"
                     name="pricePerRequest"
                     label="Price per Request ($)"
-                    placeholder="0.001"
+                    placeholder="e.g. 0.001"
                     disabled={isSubmitting}
                   />
                 </>
@@ -536,6 +515,15 @@ const CreateEndpoint = () => {
           </div>
         </form>
       </Form>
+
+      {deploymentStarted && endpointId && (
+        <DeploymentProgress
+          endpointId={endpointId}
+          onComplete={handleDeploymentComplete}
+          onError={handleDeploymentError}
+        />
+      )}
+      </div>
     </div>
   );
 };

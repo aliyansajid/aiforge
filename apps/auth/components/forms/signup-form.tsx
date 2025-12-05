@@ -17,7 +17,7 @@ import GitHubAuthButton from "../GitHubAuthButton";
 import { sendOtp, verifyOtp, registerUser } from "@/actions/auth-actions";
 import { emailSchema, otpSchema, personalInfoSchema } from "@/schemas/auth";
 import { toast } from "sonner";
-import { signIn } from "@repo/auth";
+import { signIn } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Separator } from "@repo/ui/components/separator";
 import { Spinner } from "@repo/ui/components/spinner";
