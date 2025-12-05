@@ -47,7 +47,13 @@ async function generateSignedUrl(filePath: string): Promise<string> {
   }
 }
 
-export async function getUserTeams(): Promise<ActionResponse<Team[]>> {
+type TeamWithCount = Team & {
+  _count: {
+    members: number;
+  };
+};
+
+export async function getUserTeams(): Promise<ActionResponse<TeamWithCount[]>> {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -64,7 +70,15 @@ export async function getUserTeams(): Promise<ActionResponse<Team[]>> {
         userId: session.user.id,
       },
       include: {
-        team: true,
+        team: {
+          include: {
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: "asc",
@@ -87,6 +101,7 @@ export async function getUserTeams(): Promise<ActionResponse<Team[]>> {
           slug: tm.team.slug,
           image: imageUrl,
           role: tm.role,
+          _count: tm.team._count,
         };
       })
     );

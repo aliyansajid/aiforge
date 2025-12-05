@@ -44,17 +44,23 @@ export function NavProjects({
   const handleDelete = (projectUrl: string) => {
     startTransition(async () => {
       try {
-        // Extract projectSlug from URL (format: /teamSlug/projectSlug)
-        const urlParts = projectUrl.split('/');
-        const projectSlug = urlParts[urlParts.length - 1];
+        // Extract projectSlug and teamSlug from URL (format: /teamSlug/projectSlug)
+        const urlParts = projectUrl.split('/').filter(part => part);
+        const teamSlug = urlParts[0];
+        const projectSlug = urlParts[1];
 
-        const result = await deleteProject(projectSlug);
+        if (!teamSlug || !projectSlug) {
+          toast.error("Invalid project URL");
+          return;
+        }
+
+        const result = await deleteProject(projectSlug, teamSlug);
 
         if (result.success) {
           toast.success("Project deleted successfully");
           router.refresh();
         } else {
-          toast.error(result.error || "Failed to delete project");
+          toast.error(result.message || "Failed to delete project");
         }
       } catch (error) {
         toast.error("An error occurred while deleting the project");

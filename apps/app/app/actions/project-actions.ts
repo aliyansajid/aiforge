@@ -6,9 +6,15 @@ import { revalidatePath } from "next/cache";
 import { projectSchema } from "@/schema/index";
 import { ActionResponse, Project } from "@/types";
 
+type ProjectWithCount = Project & {
+  _count: {
+    endpoints: number;
+  };
+};
+
 export async function getTeamProjects(
   teamSlug: string
-): Promise<ActionResponse<Project[]>> {
+): Promise<ActionResponse<ProjectWithCount[]>> {
   const session = await auth();
 
   if (!session?.user?.id) {

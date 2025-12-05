@@ -98,8 +98,8 @@ export async function getCloudRunMetric(
           alignmentPeriod: {
             seconds: aggregation.alignmentPeriod || 60,
           },
-          perSeriesAligner: aggregation.perSeriesAligner || 'ALIGN_MEAN',
-          crossSeriesReducer: aggregation.crossSeriesReducer || 'REDUCE_SUM',
+          perSeriesAligner: (aggregation.perSeriesAligner || 'ALIGN_MEAN') as 'ALIGN_MEAN',
+          crossSeriesReducer: (aggregation.crossSeriesReducer || 'REDUCE_SUM') as 'REDUCE_SUM',
         },
       }),
     };
@@ -107,7 +107,8 @@ export async function getCloudRunMetric(
     console.log(`[CloudRun] Fetching metric: ${metricType} for service: ${serviceName}`);
     console.log(`[CloudRun] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
-    const [timeSeries] = await monitoringClient.listTimeSeries(request);
+    const response = await monitoringClient.listTimeSeries(request);
+    const timeSeries = response[0] || [];
 
     console.log(`[CloudRun] Received ${timeSeries.length} time series for ${metricType}`);
 
@@ -142,7 +143,7 @@ export async function getCloudRunMetric(
     );
 
     console.log(`[CloudRun] Returning ${sortedData.length} data points for ${metricType}`);
-    if (sortedData.length > 0) {
+    if (sortedData.length > 0 && sortedData[0]) {
       console.log(`[CloudRun] Sample data point:`, {
         timestamp: sortedData[0].timestamp,
         value: sortedData[0].value,

@@ -297,6 +297,9 @@ export class ZipExtractorEnhanced {
     // Unwrap single root folder
     if (topLevelDirs.length === 1 && topLevel.length === 1) {
       const singleDir = topLevelDirs[0];
+      if (!singleDir) {
+        throw new Error("Unexpected error: singleDir is undefined");
+      }
       const sourcePath = path.join(tempDir, singleDir);
       const finalPath = path.join(destDir, "model_package");
       await fs.promises.mkdir(finalPath, { recursive: true });

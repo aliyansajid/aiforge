@@ -40,3 +40,5 @@ yarn-error.log*
 # Cloud SQL
 cloudsql/
 .ssl/
+
+setup-vm.sh

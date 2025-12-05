@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@repo/ui", "@repo/db", "@repo/auth"],
+  // Exclude Python virtual environments and model files from build
+  serverExternalPackages: ["@prisma/client", "@google-cloud/storage"],
   images: {
     remotePatterns: [
       {
@@ -12,6 +14,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Turbopack config (Next.js 16+) - empty config to acknowledge transition
+  turbopack: {},
   webpack: (config, { isServer }) => {
     // Exclude Node.js modules from client-side bundles
     if (!isServer) {

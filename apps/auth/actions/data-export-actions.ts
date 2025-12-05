@@ -104,7 +104,6 @@ export async function exportUserData() {
           projects: tm.team.projects.map((project) => ({
             id: project.id,
             name: project.name,
-            description: project.description,
             slug: project.slug,
             createdAt: project.createdAt,
             endpoints: project.endpoints.map((endpoint) => ({

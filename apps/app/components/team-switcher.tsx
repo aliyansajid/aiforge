@@ -57,8 +57,10 @@ export function TeamSwitcher({ teams, currentTeamSlug }: TeamSwitcherProps) {
 
         if (index < teams.length) {
           const team = teams[index];
-          setActiveTeam(team);
-          router.push(`/${team.slug}`);
+          if (team) {
+            setActiveTeam(team);
+            router.push(`/${team.slug}`);
+          }
         }
       }
     };

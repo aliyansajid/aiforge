@@ -157,9 +157,9 @@ export function canManageRole(
 
   // For removal
   if (action === "remove") {
-    // Owner can remove anyone except themselves
+    // Owner can remove anyone (except OWNER, which is already handled above)
     if (currentRole === "OWNER") {
-      return targetRole !== "OWNER";
+      return true;
     }
 
     // Admin can only remove members, not other admins
