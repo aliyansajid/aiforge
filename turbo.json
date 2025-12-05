@@ -15,6 +15,7 @@
         "AUTH_URL",
         "NEXT_PUBLIC_APP_URL",
         "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_AUTH_URL",
         "NEXT_PUBLIC_CDN_URL",
         "NEXT_PUBLIC_DASHBOARD_URL",
         "SMTP_HOST",

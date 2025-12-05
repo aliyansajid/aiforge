@@ -49,9 +49,16 @@ Set these environment variables in Vercel dashboard for the main app:
 ```bash
 # Authentication
 AUTH_SECRET="nTaS4YOZYo1cGtHi/JDWmcU5cCj7c1kPKqm3gyXiIvM="
-AUTH_URL=https://aiforge-auth.vercel.app
+AUTH_URL=https://aiforge-app.vercel.app
 NEXT_PUBLIC_APP_URL=https://aiforge-app.vercel.app
 NEXT_PUBLIC_API_URL=https://aiforge-app.vercel.app
+NEXT_PUBLIC_AUTH_URL=https://aiforge-auth.vercel.app
+
+# OAuth Providers (same as auth app for unified auth)
+AUTH_GITHUB_ID="Ov23liJLNSiltzgXL4X0"
+AUTH_GITHUB_SECRET="72aa18956ba029ff92cfda4fbd14f173926a3d6d"
+AUTH_GOOGLE_ID="1058775271837-8euef4bq9gb89134jtklco64up8729l5.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="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"
 
 # Google Cloud Configuration
 GOOGLE_CLOUD_PROJECT=aiforge-2026
@@ -108,15 +115,23 @@ The `lib/gcp-credentials.ts` utility handles this automatically:
 
 ## OAuth Provider Configuration
 
+Since both apps have auth capabilities, you need to configure callbacks for BOTH domains:
+
 ### GitHub OAuth
 Update your GitHub OAuth App settings:
 - Homepage URL: `https://aiforge-auth.vercel.app`
-- Authorization callback URL: `https://aiforge-auth.vercel.app/api/auth/callback/github`
+- Authorization callback URLs:
+  - `https://aiforge-auth.vercel.app/api/auth/callback/github`
+  - `https://aiforge-app.vercel.app/api/auth/callback/github`
 
 ### Google OAuth
 Update your Google OAuth Client settings:
-- Authorized JavaScript origins: `https://aiforge-auth.vercel.app`
-- Authorized redirect URIs: `https://aiforge-auth.vercel.app/api/auth/callback/google`
+- Authorized JavaScript origins:
+  - `https://aiforge-auth.vercel.app`
+  - `https://aiforge-app.vercel.app`
+- Authorized redirect URIs:
+  - `https://aiforge-auth.vercel.app/api/auth/callback/google`
+  - `https://aiforge-app.vercel.app/api/auth/callback/google`
 
 ## Deployment Steps
 
