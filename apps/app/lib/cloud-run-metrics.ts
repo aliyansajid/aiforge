@@ -1,21 +1,13 @@
 import { MetricServiceClient } from '@google-cloud/monitoring';
+import { getGoogleCredentials } from './gcp-credentials';
 
 // Initialize the Monitoring client
 let client: MetricServiceClient | null = null;
 
 function getClient(): MetricServiceClient {
   if (!client) {
-    const credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-    if (credentials) {
-      client = new MetricServiceClient({
-        keyFilename: credentials,
-      });
-    } else {
-      // For development/testing without credentials
-      console.warn('GOOGLE_APPLICATION_CREDENTIALS not set, metrics will not be available');
-      client = new MetricServiceClient();
-    }
+    const credentials = getGoogleCredentials();
+    client = new MetricServiceClient(credentials);
   }
   return client;
 }

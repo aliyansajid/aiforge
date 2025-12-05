@@ -7,6 +7,7 @@ import * as path from "path";
 import { ZipExtractorEnhanced } from "./zip-extractor-enhanced";
 import { ZipExtractor } from "./zip-extractor";
 import { GitHandler } from "./git-handler";
+import { getGoogleCredentials } from "./gcp-credentials";
 
 export const execAsync = promisify(exec);
 
@@ -41,11 +42,11 @@ export class EnhancedDeploymentService {
   private artifactRegistry: string;
 
   constructor() {
-    const credentialsPath = path.join(process.cwd(), "./service-account.json");
+    const credentials = getGoogleCredentials();
 
     this.storage = new Storage({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || "aiforge-448200",
-      keyFilename: credentialsPath,
+      ...credentials,
     });
 
     this.bucketName = process.env.GCS_BUCKET_MODELS || "aiforge-models";

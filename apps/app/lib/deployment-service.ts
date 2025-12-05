@@ -4,6 +4,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
+import { getGoogleCredentials } from "./gcp-credentials";
 
 const execAsync = promisify(exec);
 
@@ -25,11 +26,11 @@ export class DeploymentService {
   private region: string;
 
   constructor() {
-    const credentialsPath = path.join(process.cwd(), "./service-account.json");
+    const credentials = getGoogleCredentials();
 
     this.storage = new Storage({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || "aiforge-2026",
-      keyFilename: credentialsPath,
+      ...credentials,
     });
 
     this.bucketName = process.env.GCS_BUCKET_MODELS || "aiforge-models";

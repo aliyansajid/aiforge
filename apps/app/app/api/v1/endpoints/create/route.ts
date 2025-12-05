@@ -2,18 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { Storage } from "@google-cloud/storage";
 import { auth } from "@repo/auth";
-import path from "path";
+import { getGoogleCredentials } from "@/lib/gcp-credentials";
 
 // Helper function to initialize GCS
 function getStorage() {
-  const credentialsPath = path.join(
-    process.cwd(),
-    process.env.GOOGLE_APPLICATION_CREDENTIALS || "./service-account.json"
-  );
+  const credentials = getGoogleCredentials();
 
   return new Storage({
     projectId: process.env.GOOGLE_CLOUD_PROJECT || "aiforge-2026",
-    keyFilename: credentialsPath,
+    ...credentials,
   });
 }
 

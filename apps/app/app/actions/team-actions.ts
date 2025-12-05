@@ -5,25 +5,19 @@ import { prisma, TeamRole } from "@repo/db";
 import { revalidatePath } from "next/cache";
 import { Storage } from "@google-cloud/storage";
 import { teamSchema } from "@/schema/index";
-import path from "path";
 import { ActionResponse, Team } from "@/types";
+import { getGoogleCredentials } from "@/lib/gcp-credentials";
 
 const GCS_BUCKET_NAME = "aiforge-assets";
 const FOLDER_PATH = "team-images";
 
-const SERVICE_ACCOUNT_PATH = path.join(process.cwd(), "service-account.json");
-
 let storage: Storage;
 
 try {
-  storage = new Storage({
-    keyFilename: SERVICE_ACCOUNT_PATH,
-  });
+  const credentials = getGoogleCredentials();
+  storage = new Storage(credentials);
 } catch (error) {
-  console.error("Google Cloud Storage initialization failed.", {
-    path: SERVICE_ACCOUNT_PATH,
-    error,
-  });
+  console.error("Google Cloud Storage initialization failed:", error);
   throw new Error(
     "Failed to initialize Google Cloud Storage. Please check the service account configuration."
   );
